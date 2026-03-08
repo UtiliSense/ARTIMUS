@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARTIMUS - Arctic Terrain Intelligence & Mobility Unified System</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Roboto+Condensed:wght@300;400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-primary: #0a0e14;
+  --bg-secondary: #111820;
+  --bg-panel: #0d1117;
+  --bg-card: #151c25;
+  --border: #1e2a3a;
+  --border-accent: #2a3a4a;
+  --text-primary: #c8d6e5;
+  --text-secondary: #7a8a9a;
+  --text-dim: #4a5a6a;
+  --green: #00e676;
+  --green-dim: #1b5e20;
+  --amber: #ffab00;
+  --amber-dim: #5c4000;
+  --red: #ff1744;
+  --red-dim: #6e0018;
+  --blue: #40c4ff;
+  --cyan: #00e5ff;
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Roboto Condensed', sans-serif;
+}
+
+body {
+  background: #0a0e14;
+  background-image: url('images/bgartimus.png');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow: hidden;
+  font-family: var(--sans);
+  position: relative;
+  margin: 0; padding: 0;
+}
+
+/* No overlay wash — clean background */
+body::before { display: none; }
+
+/* Everything on top of the overlay */
+body > * { position: relative; z-index: 1; }
+
+/* Scaling wrapper — shrinks on small screens, stays native on large */
+.scale-wrapper {
+  width: 1749px;
+  height: 966px;
+  transform-origin: center center;
+  flex-shrink: 0;
+}
+
+.device-frame {
+  position: relative;
+  width: 1749px;
+  height: 966px;
+  /* Drop shadow from the tablet */
+  filter: drop-shadow(0 25px 60px rgba(0,0,0,0.45)) drop-shadow(0 8px 20px rgba(0,0,0,0.3));
+}
+.device-frame > img { display: block; pointer-events: none; }
+
+.frame-top { position: absolute; top: 0; left: 0; width: 1749px; height: 147px; z-index: 10; }
+.frame-top-left { position: absolute; top: 147px; left: 0; width: 224px; height: 35px; z-index: 10; }
+.frame-clock { position: absolute; top: 147px; left: 224px; width: 1282px; height: 35px; z-index: 10; }
+.frame-top-right { position: absolute; top: 147px; right: 0; width: 243px; height: 35px; z-index: 10; }
+.frame-left { position: absolute; top: 182px; left: 0; width: 188px; height: 784px; z-index: 10; }
+.frame-right { position: absolute; top: 182px; right: 0; width: 205px; height: 784px; z-index: 10; }
+.frame-bottom-left { position: absolute; top: 771px; left: 188px; width: 36px; height: 195px; z-index: 10; }
+.frame-nav { position: absolute; top: 771px; left: 224px; width: 1282px; height: 35px; z-index: 10; }
+.frame-bottom-right { position: absolute; top: 771px; right: 205px; width: 38px; height: 195px; z-index: 10; }
+.frame-bottom { position: absolute; top: 806px; left: 224px; width: 1282px; height: 160px; z-index: 10; }
+
+/* Clock overlay on device status bar */
+.frame-clock-overlay {
+  position: absolute;
+  top: 147px; left: 224px;
+  width: 1282px; height: 35px;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.clock-left { position: absolute; left: 16px; font-family: var(--mono); font-size: 11px; color: var(--text-primary); letter-spacing: 0.5px; }
+.clock-center { font-family: var(--mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.5px; }
+.clock-right { position: absolute; right: 16px; display: flex; align-items: center; gap: 8px; }
+.clock-right .signal-icon svg { width: 14px; height: 14px; fill: var(--green); }
+.clock-right .batt-text { font-family: var(--mono); font-size: 10px; color: var(--text-primary); letter-spacing: 0.5px; }
+
+/* ═══ SCREEN ═══ */
+.screen-content {
+  position: absolute;
+  top: 182px; left: 188px;
+  width: 1356px; height: 589px;
+  background: var(--bg-primary);
+  overflow: hidden;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── TOOLBAR ─── */
+.toolbar {
+  display: flex; align-items: center;
+  height: 36px; min-height: 36px;
+  background: linear-gradient(180deg, #1a2030, #0f1520);
+  border-bottom: 1px solid var(--border);
+  padding: 0 6px; z-index: 20;
+}
+.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 4px; }
+.toolbar-center { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.tb-label { font-family: var(--mono); font-size: 10px; color: var(--green); letter-spacing: 1px; margin-right: 8px; }
+.tb-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.tb-mission { font-family: var(--mono); font-size: 10px; color: var(--amber); letter-spacing: 0.5px; }
+
+.tb-btn {
+  width: 30px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  border-radius: 3px; cursor: pointer; transition: all 0.15s;
+}
+.tb-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--border-accent); }
+.tb-btn.active { background: rgba(0,230,118,0.1); border-color: var(--green); }
+.tb-btn svg { width: 16px; height: 16px; fill: var(--text-secondary); }
+.tb-btn:hover svg { fill: var(--text-primary); }
+.tb-btn.active svg { fill: var(--green); }
+
+/* ─── MAIN ─── */
+.main-content { flex: 1; display: flex; overflow: hidden; position: relative; }
+.map-area { flex: 1; position: relative; }
+#map { width: 100%; height: 100%; background: var(--bg-primary); }
+
+/* Leaflet overrides */
+.leaflet-container { background: var(--bg-primary) !important; }
+.leaflet-control-zoom a { background: var(--bg-card) !important; color: var(--text-primary) !important; border-color: var(--border) !important; }
+.leaflet-control-zoom a:hover { background: var(--bg-secondary) !important; }
+.leaflet-control-attribution { background: rgba(10,14,20,0.8) !important; color: var(--text-dim) !important; font-size: 8px !important; }
+.leaflet-control-attribution a { color: var(--text-dim) !important; }
+
+.layer-switcher {
+  position: absolute; top: 8px; right: 8px; z-index: 1000;
+  display: flex; gap: 2px;
+  background: rgba(13,17,23,0.9); border: 1px solid var(--border); border-radius: 4px; padding: 2px;
+}
+.layer-btn {
+  padding: 3px 8px; font-family: var(--mono); font-size: 9px;
+  color: var(--text-secondary); background: transparent; border: none;
+  border-radius: 2px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.5px;
+}
+.layer-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+.layer-btn.active { color: var(--green); background: rgba(0,230,118,0.1); }
+
+.grid-scale-switcher {
+  position: absolute; top: 8px; right: 170px; z-index: 1000;
+  background: rgba(13,17,23,0.9); border: 1px solid var(--border); border-radius: 4px; padding: 2px;
+}
+.grid-scale-btn {
+  padding: 3px 10px; font-family: var(--mono); font-size: 9px;
+  color: var(--cyan); background: transparent; border: none;
+  border-radius: 2px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.5px;
+}
+.grid-scale-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+
+.center-btn {
+  position: absolute; bottom: 28px; left: 8px; z-index: 1000;
+  font-family: var(--mono); font-size: 9px; color: var(--cyan);
+  background: rgba(13,17,23,0.9); padding: 3px 10px;
+  border: 1px solid var(--border); border-radius: 2px; letter-spacing: 0.5px;
+  cursor: pointer; transition: all 0.15s;
+}
+.center-btn:hover { color: var(--text-primary); background: rgba(13,17,23,1); border-color: var(--cyan); }
+
+.coord-readout {
+  position: absolute; bottom: 8px; left: 8px; z-index: 1000;
+  font-family: var(--mono); font-size: 9px; color: var(--cyan);
+  background: rgba(13,17,23,0.85); padding: 3px 10px;
+  border: 1px solid var(--border); border-radius: 2px; letter-spacing: 0.5px;
+}
+
+/* Blue Force Tracker — own position */
+.bft-icon { background: none !important; border: none !important; }
+.bft-marker {
+  position: relative; width: 28px; height: 28px;
+}
+.bft-marker svg { position: absolute; top: 0; left: 0; width: 28px; height: 28px; filter: drop-shadow(0 0 4px rgba(0,120,255,0.6)); }
+.bft-pulse {
+  position: absolute; top: 50%; left: 50%; width: 28px; height: 28px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(0,120,255,0.5); border-radius: 50%;
+  animation: bftPulse 2s ease-out infinite;
+}
+@keyframes bftPulse {
+  0% { width: 28px; height: 28px; opacity: 0.7; }
+  100% { width: 60px; height: 60px; opacity: 0; }
+}
+
+.map-crosshair {
+  position: absolute; top: 50%; left: 50%; z-index: 900;
+  width: 40px; height: 40px; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.map-crosshair::before, .map-crosshair::after {
+  content: ''; position: absolute; background: rgba(0,229,255,0.6);
+}
+.map-crosshair::before { top: 0; left: 50%; width: 1px; height: 100%; transform: translateX(-50%); }
+.map-crosshair::after { top: 50%; left: 0; width: 100%; height: 1px; transform: translateY(-50%); }
+.map-crosshair-dot {
+  position: absolute; top: 50%; left: 50%; width: 4px; height: 4px;
+  border: 1px solid rgba(0,229,255,0.8); border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Drone HUD */
+.drone-hud {
+  position: absolute; bottom: 8px; right: 8px; z-index: 1000;
+  background: rgba(13,17,23,0.92); border: 1px solid var(--border);
+  border-radius: 4px; padding: 6px 10px; display: none; min-width: 180px;
+}
+.drone-hud.visible { display: block; }
+.drone-hud-title { font-family: var(--mono); font-size: 9px; color: var(--green); letter-spacing: 1px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.drone-hud-title .blink { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.drone-hud-row { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 9px; margin-top: 2px; }
+.drone-hud-row .label { color: var(--text-dim); }
+.drone-hud-row .value { color: var(--text-primary); }
+.drone-progress-bar { margin-top: 5px; height: 4px; background: var(--bg-primary); border-radius: 2px; overflow: hidden; }
+.drone-progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), var(--cyan)); border-radius: 2px; transition: width 0.3s; width: 0%; }
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  width: 380px; min-width: 380px;
+  background: var(--bg-panel); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-tabs { display: flex; height: 30px; min-height: 30px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+.sidebar-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 8px; letter-spacing: 0.5px;
+  color: var(--text-dim); background: transparent; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.15s;
+}
+.sidebar-tab:hover { color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+.sidebar-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); background: rgba(0,229,255,0.04); }
+
+.sidebar-panel { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px; display: none; }
+.sidebar-panel.active { display: block; }
+.sidebar-panel::-webkit-scrollbar { width: 4px; }
+.sidebar-panel::-webkit-scrollbar-track { background: transparent; }
+.sidebar-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── PANEL COMPONENTS ─── */
+.panel-section { margin-bottom: 12px; }
+.panel-section-title {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 1.5px;
+  color: var(--text-dim); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.panel-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.panel-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 10px; margin-bottom: 8px; }
+
+.mil-select {
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text-primary); font-family: var(--mono); font-size: 12px;
+  padding: 7px 10px; outline: none; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='%237a8a9a'%3E%3Cpath d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center;
+}
+.mil-select:focus { border-color: var(--cyan); }
+
+.mil-btn {
+  padding: 5px 12px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.5px;
+  border: 1px solid var(--border); border-radius: 3px; cursor: pointer;
+  transition: all 0.15s; background: var(--bg-card); color: var(--text-primary);
+}
+.mil-btn:hover { border-color: var(--border-accent); background: rgba(255,255,255,0.05); }
+.mil-btn.primary { background: rgba(0,230,118,0.15); border-color: var(--green); color: var(--green); }
+.mil-btn.primary:hover { background: rgba(0,230,118,0.25); }
+.mil-btn.danger { background: rgba(255,23,68,0.15); border-color: var(--red); color: var(--red); }
+.mil-btn.danger:hover { background: rgba(255,23,68,0.25); }
+.mil-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.data-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-family: var(--mono); font-size: 11px; }
+.data-row .label { color: var(--text-dim); }
+.data-row .value { color: var(--text-primary); }
+.data-row .value.green { color: var(--green); }
+.data-row .value.amber { color: var(--amber); }
+.data-row .value.red { color: var(--red); }
+.data-row .value.cyan { color: var(--cyan); }
+
+.stat-row { display: flex; gap: 6px; margin: 8px 0; }
+.stat-box { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 8px 6px; text-align: center; }
+.stat-box .number { font-family: var(--mono); font-size: 22px; font-weight: 700; line-height: 1; }
+.stat-box .label { font-family: var(--mono); font-size: 9px; letter-spacing: 1px; margin-top: 4px; }
+.stat-box.go { border-color: var(--green-dim); }
+.stat-box.go .number { color: var(--green); }
+.stat-box.go .label { color: var(--green); }
+.stat-box.caution { border-color: var(--amber-dim); }
+.stat-box.caution .number { color: var(--amber); }
+.stat-box.caution .label { color: var(--amber); }
+.stat-box.nogo { border-color: var(--red-dim); }
+.stat-box.nogo .number { color: var(--red); }
+.stat-box.nogo .label { color: var(--red); }
+.stat-box.unsurveyed .number { color: var(--text-dim); }
+.stat-box.unsurveyed .label { color: var(--text-dim); }
+
+.progress-container { margin: 8px 0; }
+.progress-label { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.progress-label .value { color: var(--cyan); }
+.progress-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.progress-fill.green { background: linear-gradient(90deg, #1b5e20, var(--green)); }
+.progress-fill.cyan { background: linear-gradient(90deg, #0d3b5c, var(--cyan)); }
+
+.vehicle-badge {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px;
+  border-radius: 2px; font-family: var(--mono); font-size: 9px; border: 1px solid;
+}
+.vehicle-badge.go { color: var(--green); border-color: var(--green-dim); background: rgba(0,230,118,0.08); }
+.vehicle-badge.caution { color: var(--amber); border-color: var(--amber-dim); background: rgba(255,171,0,0.08); }
+.vehicle-badge.nogo { color: var(--red); border-color: var(--red-dim); background: rgba(255,23,68,0.08); }
+
+.convoy-vehicle {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
+  margin-bottom: 4px; cursor: pointer; transition: all 0.15s;
+}
+.convoy-vehicle:hover { border-color: var(--border-accent); }
+.convoy-vehicle .callsign { font-family: var(--mono); font-size: 10px; color: var(--text-primary); min-width: 60px; }
+.convoy-vehicle .type { font-family: var(--mono); font-size: 9px; color: var(--text-secondary); flex: 1; }
+.convoy-vehicle .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.convoy-vehicle .remove-btn { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; }
+.convoy-vehicle .remove-btn:hover { color: var(--red); }
+
+.cell-detail { display: none; }
+.cell-detail.visible { display: block; }
+.cell-status-banner { padding: 8px 12px; border-radius: 4px; font-family: var(--mono); font-size: 12px; font-weight: 700; text-align: center; letter-spacing: 1px; margin-top: 8px; }
+.cell-status-banner.go { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid var(--green-dim); }
+.cell-status-banner.caution { background: rgba(255,171,0,0.15); color: var(--amber); border: 1px solid var(--amber-dim); }
+.cell-status-banner.nogo { background: rgba(255,23,68,0.15); color: var(--red); border: 1px solid var(--red-dim); }
+
+.waypoint-list { max-height: 140px; overflow-y: auto; }
+.waypoint-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-family: var(--mono); font-size: 9px; color: var(--text-secondary); border-bottom: 1px solid rgba(30,42,58,0.5); }
+.waypoint-item .wp-num { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 50%; font-size: 8px; color: var(--cyan); }
+.waypoint-item .wp-coord { flex: 1; color: var(--text-dim); }
+.waypoint-item .wp-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px; }
+.waypoint-item .wp-remove:hover { color: var(--red); }
+
+.toast {
+  position: absolute; top: 44px; left: 50%; transform: translateX(-50%) translateY(-20px); z-index: 1000;
+  background: rgba(13,17,23,0.95); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 16px; font-family: var(--mono); font-size: 10px; color: var(--text-primary);
+  opacity: 0; transition: all 0.3s ease; pointer-events: none; white-space: nowrap;
+}
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.green { border-color: var(--green); color: var(--green); }
+.toast.amber { border-color: var(--amber); color: var(--amber); }
+.toast.red { border-color: var(--red); color: var(--red); }
+.toast.cyan { border-color: var(--cyan); color: var(--cyan); }
+
+.grid-tooltip { background: rgba(13,17,23,0.95) !important; border: 1px solid var(--border) !important; border-radius: 4px !important; color: var(--text-primary) !important; font-family: var(--mono) !important; font-size: 9px !important; padding: 6px 8px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important; }
+.grid-tooltip::before { display: none !important; }
+.leaflet-tooltip.grid-tooltip { opacity: 1 !important; }
+.mgrs-label { font-family: 'JetBrains Mono',monospace; font-size: 9px; color: rgba(0,60,100,0.8); text-shadow: 0 0 2px rgba(255,255,255,0.9); pointer-events: none; white-space: nowrap; }
+.mgrs-zone-label { font-family: 'JetBrains Mono',monospace; font-size: 11px; font-weight: 700; color: rgba(0,40,80,0.95); text-shadow: 0 0 3px rgba(255,255,255,0.9); pointer-events: none; }
+
+.drone-icon { background: none !important; border: none !important; }
+.drone-marker { width: 24px; height: 24px; position: relative; }
+.drone-marker svg { width: 24px; height: 24px; filter: drop-shadow(0 0 6px rgba(0,230,118,0.6)); }
+.drone-pulse { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--green); animation: dronePulse 2s infinite; }
+@keyframes dronePulse { 0%{width:24px;height:24px;opacity:0.8} 100%{width:60px;height:60px;opacity:0} }
+
+.waypoint-icon { background: none !important; border: none !important; }
+.wp-marker { width: 20px; height: 20px; border-radius: 50%; background: rgba(0,229,255,0.2); border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 8px; color: var(--cyan); box-shadow: 0 0 8px rgba(0,229,255,0.3); }
+
+.vehicle-map-icon { background: none !important; border: none !important; }
+.vehicle-map-marker { position: relative; text-align: center; }
+.vehicle-map-marker .v-icon { width: 22px; height: 22px; border-radius: 3px; border: 1.5px solid var(--blue); background: rgba(10,14,20,0.9); display: flex; align-items: center; justify-content: center; }
+.vehicle-map-marker .v-label { font-family: var(--mono); font-size: 7px; color: var(--blue); margin-top: 1px; text-shadow: 0 0 4px rgba(0,0,0,0.8); }
+
+.processing-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,14,20,0.85); z-index: 1100; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.processing-overlay.visible { display: flex; }
+.processing-spinner { width: 40px; height: 40px; border: 2px solid var(--border); border-top-color: var(--cyan); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.processing-text { font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: 1px; }
+.processing-sub { font-family: var(--mono); font-size: 9px; color: var(--text-dim); }
+
+.modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(10,14,20,0.7); z-index: 1100; display: none; align-items: center; justify-content: center; }
+.modal-overlay.visible { display: flex; }
+.modal { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 280px; }
+.modal-title { font-family: var(--mono); font-size: 14px; color: var(--cyan); letter-spacing: 1.5px; margin-bottom: 16px; font-weight: 700; }
+.modal-field { margin-bottom: 14px; }
+.modal-field label { display: block; font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 5px; letter-spacing: 0.5px; }
+.modal-field input { width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); font-family: var(--mono); font-size: 12px; padding: 8px 10px; outline: none; }
+.modal-field input:focus { border-color: var(--cyan); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+/* Mission config modal extras */
+.mission-type-group { display: flex; gap: 8px; margin-bottom: 10px; }
+.mission-type-btn {
+  flex: 1; padding: 14px 8px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text-secondary); font-family: var(--mono); font-size: 12px;
+  cursor: pointer; text-align: center; transition: all 0.15s; letter-spacing: 0.5px; font-weight: 700;
+}
+.mission-type-btn:hover { border-color: var(--text-dim); }
+.mission-type-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.08); }
+.mission-type-btn .icon { font-size: 22px; display: block; margin-bottom: 4px; }
+
+.modal-field select {
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text-primary); font-family: var(--mono); font-size: 12px; padding: 8px 10px; outline: none;
+}
+.modal-field select:focus { border-color: var(--cyan); }
+
+.mission-summary {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px;
+  padding: 12px 14px; margin-top: 12px; font-family: var(--mono); font-size: 12px;
+}
+.mission-summary .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.mission-summary .row:last-child { margin-bottom: 0; }
+.mission-summary .label { color: var(--text-dim); }
+.mission-summary .val { color: var(--text-primary); }
+.mission-summary .val.warn { color: var(--amber); }
+.mission-summary .val.danger { color: var(--red); }
+.mission-summary .val.ok { color: var(--green); }
+.mission-divert { margin-top: 8px; padding: 8px 10px; background: rgba(255,171,0,0.1); border: 1px solid rgba(255,171,0,0.3); border-radius: 4px; font-family: var(--mono); font-size: 10px; color: var(--amber); display: none; }
+</style>
+</head>
+<body>
+
+<div class="scale-wrapper" id="scaleWrapper">
+<div class="device-frame">
+  <img class="frame-top" src="images/ARTIMUS_01.png" alt="">
+  <img class="frame-top-left" src="images/ARTIMUS_02.png" alt="">
+  <img class="frame-clock" src="images/clockstatusbattery.png" alt="">
+  <!-- Live clock/status overlay on device status bar -->
+  <div class="frame-clock-overlay">
+    <div class="clock-left" id="zuluClock">00:00:00Z</div>
+    <div class="clock-center" id="localClock">LOCAL 00:00:00</div>
+    <div class="clock-right">
+      <div class="signal-icon"><svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg></div>
+      <span class="batt-text">98%</span>
+    </div>
+  </div>
+  <img class="frame-top-right" src="images/ARTIMUS_04.png" alt="">
+  <img class="frame-left" src="images/left.png" alt="">
+  <img class="frame-right" src="images/right.png" alt="">
+  <img class="frame-bottom-left" src="images/ARTIMUS_08.png" alt="">
+  <img class="frame-nav" src="images/screenbottomnav.png" alt="">
+  <img class="frame-bottom-right" src="images/ARTIMUS_10.png" alt="">
+  <img class="frame-bottom" src="images/ARTIMUS_11.png" alt="">
+
+  <div class="screen-content">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="tb-label">● ARTIMUS</span>
+        <div class="tb-divider"></div>
+        <span class="tb-mission">MISSION: COLDEX-26</span>
+        <div class="tb-divider"></div>
+        <span class="tb-mission" style="color:var(--text-dim)">ERDC POLAR TERRAIN INTEL</span>
+      </div>
+      <div class="toolbar-center">
+        <div class="tb-btn" id="tbBtnPointer" title="Select / Pan" onclick="setMapMode('pointer')">
+          <svg viewBox="0 0 24 24"><path d="M13.64 21.97C13.14 22.21 12.54 22 12.31 21.5L10 16.5L5.5 18.25C5.32 18.32 5.13 18.29 4.97 18.18C4.81 18.07 4.72 17.88 4.74 17.69L5.41 4.21C5.42 3.98 5.57 3.78 5.79 3.71C6 3.63 6.24 3.69 6.4 3.86L16.08 14.41C16.23 14.57 16.27 14.8 16.19 15L15.73 15.97L18.04 20.97C18.27 21.47 18.05 22.07 17.55 22.31L13.64 21.97Z"/></svg>
+        </div>
+        <div class="tb-btn active" id="tbBtnPlan" title="Plan Survey Route" onclick="setMapMode('plan')">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div class="tb-btn" id="tbBtnMeasure" title="Measure Distance" onclick="setMapMode('measure')">
+          <svg viewBox="0 0 24 24"><path d="M1.39 18.36l3.16-3.16 1.42 1.42-3.17 3.16 1.42 1.42 3.16-3.17 1.41 1.42-3.16 3.16 1.42 1.42L17.67 9.38l-6.36-6.36L.69 13.64l.7 4.72zM20.48 4.02l-.7-.71a2.5 2.5 0 00-3.54 0L15.17 4.38l4.24 4.24 1.07-1.07a2.5 2.5 0 000-3.53z"/></svg>
+        </div>
+        <div class="tb-divider"></div>
+        <div class="tb-btn" id="tbBtnGrid" title="Toggle Grid" onclick="toggleGrid()">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z"/></svg>
+        </div>
+        <div class="tb-btn" id="tbBtnTerrain" title="Toggle Terrain" onclick="toggleTerrainOverlay()">
+          <svg viewBox="0 0 24 24"><path d="M14 6l-3.75 5 2.85 3.8-1.6 1.2C9.81 13.75 7 10 7 10l-6 8h22L14 6z"/></svg>
+        </div>
+      </div>
+      <div class="toolbar-right">
+        <div class="tb-btn" title="Settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1115.6 12 3.6 3.6 0 0112 15.6z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="map-area">
+        <div id="map"></div>
+        <div class="map-crosshair"><div class="map-crosshair-dot"></div></div>
+        <div class="grid-scale-switcher">
+          <button class="grid-scale-btn" id="gridScaleBtn" onclick="cycleGridScale()">GRID 100K</button>
+        </div>
+        <div class="layer-switcher">
+          <button class="layer-btn active" onclick="switchLayer('satellite',this)">SAT</button>
+          <button class="layer-btn" onclick="switchLayer('arcticdem',this)">DEM</button>
+          <button class="layer-btn" onclick="switchLayer('topo',this)">TOPO</button>
+          <button class="layer-btn" onclick="switchLayer('dark',this)">DARK</button>
+        </div>
+        <button class="center-btn" onclick="map.setView(BARDUFOSS, 13)">⌖ CENTER</button>
+        <div class="coord-readout" id="coordReadout">76.6367°N -66.0725°E</div>
+        <div class="drone-hud" id="droneHud">
+          <div class="drone-hud-title"><div class="blink"></div>SNOW HAWK 1 — SURVEYING</div>
+          <div class="drone-hud-row"><span class="label">ALT</span><span class="value">120m AGL</span></div>
+          <div class="drone-hud-row"><span class="label">SPD</span><span class="value">8.2 m/s</span></div>
+          <div class="drone-hud-row"><span class="label">BATT</span><span class="value green" id="droneBatt">94%</span></div>
+          <div class="drone-hud-row"><span class="label">WP</span><span class="value cyan" id="droneWpStatus">--/--</span></div>
+          <div class="drone-progress-bar"><div class="drone-progress-fill" id="droneProgressFill"></div></div>
+        </div>
+        <div class="toast" id="toast"></div>
+        <div class="processing-overlay" id="processingOverlay">
+          <div class="processing-spinner"></div>
+          <div class="processing-text">PROCESSING SURVEY DATA</div>
+          <div class="processing-sub" id="processingStep">Ingesting DEM point cloud...</div>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" onclick="switchTab('mission')">MISSION</button>
+          <button class="sidebar-tab" onclick="switchTab('terrain')">TERRAIN</button>
+          <button class="sidebar-tab" onclick="switchTab('convoy')">CONVOY</button>
+          <button class="sidebar-tab" onclick="switchTab('history')">HISTORY</button>
+        </div>
+
+        <div class="sidebar-panel active" id="panelMission">
+          <div class="panel-section">
+            <div class="panel-section-title">UAV STATUS</div>
+            <div class="panel-card">
+              <div class="data-row"><span class="label">PLATFORM</span><span class="value">Harris Carrier H6 Hybrid</span></div>
+              <div class="data-row"><span class="label">PAYLOAD</span><span class="value">GPR + LiDAR + RGB</span></div>
+              <div class="data-row"><span class="label">STATUS</span><span class="value green" id="uavStatus">STANDBY</span></div>
+              <div class="data-row"><span class="label">POWER</span><span class="value" id="uavBattery">98%</span></div>
+              <div class="data-row"><span class="label">GPS FIX</span><span class="value green" id="rtkFix">RTK FIXED (14 SAT) ±2.3cm</span></div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-section-title">SURVEY PLAN</div>
+            <div class="panel-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--text-secondary)" id="waypointCount">0 WAYPOINTS</span>
+                <button class="mil-btn" onclick="clearWaypoints()" style="font-size:8px;padding:3px 8px">CLEAR</button>
+              </div>
+              <div class="waypoint-list" id="waypointList">
+                <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px 0">Click map in PLAN mode to add waypoints</div>
+              </div>
+              <div class="data-row" style="margin-top:6px"><span class="label">EST. FLIGHT TIME</span><span class="value cyan" id="estFlightTime">--:--</span></div>
+              <div class="data-row"><span class="label">COVERAGE AREA</span><span class="value" id="coverageArea">--</span></div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="mil-btn primary" id="deployBtn" onclick="deployDrone()" disabled style="flex:1">▶ DEPLOY</button>
+                <button class="mil-btn danger" id="recallBtn" onclick="recallDrone()" style="flex:1;display:none">■ RECALL</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-section-title">SURVEY COMPLETION</div>
+            <div class="panel-card">
+              <div class="progress-container">
+                <div class="progress-label"><span>AREA SURVEYED</span><span class="value" id="surveyPercent">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill cyan" id="surveyProgressFill" style="width:0%"></div></div>
+              </div>
+              <div class="data-row" style="margin-top:4px"><span class="label">CELLS SCANNED</span><span class="value" id="cellsScanned">0 / 0</span></div>
+              <div class="data-row"><span class="label">DATA STATUS</span><span class="value" id="dataStatus" style="color:var(--text-dim)">AWAITING SURVEY</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-panel" id="panelTerrain">
+          <div class="panel-section">
+            <div class="panel-section-title">VEHICLE CLASS FILTER</div>
+            <select class="mil-select" id="vehicleFilter" onchange="updateVehicleFilter()">
+              <option value="all">ALL VEHICLES</option>
+              <option value="m1a2">M1A2 Abrams — 28 PSI</option>
+              <option value="stryker">Stryker ICV — 18 PSI</option>
+              <option value="jltv">JLTV (Oshkosh) — 14 PSI</option>
+              <option value="hmmwv">HMMWV M1165 — 11 PSI</option>
+              <option value="bv206">BV206 (Arctic) — 3 PSI</option>
+            </select>
+            <div class="data-row" style="margin-top:8px"><span class="label">MIN BEARING REQ</span><span class="value amber" id="minPsi" style="font-size:12px;font-weight:700">28 PSI</span></div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-section-title">TERRAIN ASSESSMENT</div>
+            <div class="stat-row">
+              <div class="stat-box go"><div class="number" id="goCount">--</div><div class="label">GO</div></div>
+              <div class="stat-box caution"><div class="number" id="cautionCount">--</div><div class="label">CAUTION</div></div>
+              <div class="stat-box nogo"><div class="number" id="nogoCount">--</div><div class="label">NO-GO</div></div>
+              <div class="stat-box" style="border-color:var(--border)"><div class="number" style="color:var(--cyan)" id="totalTileCount">--</div><div class="label" style="color:var(--text-dim)">TOTAL</div></div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-label"><span>MOBILITY INDEX</span><span class="value" id="mobilityIndex">--</span></div>
+              <div class="progress-bar"><div class="progress-fill green" id="mobilityFill" style="width:0%"></div></div>
+            </div>
+          </div>
+          <div class="panel-section" id="mobilityReportSection" style="display:none">
+            <div class="panel-section-title">OVERALL MOBILITY REPORT</div>
+            <div class="panel-card" id="mobilityReport" style="font-family:var(--mono);font-size:11px;color:var(--text-secondary);line-height:1.6"></div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-section-title">SELECTED TILE</div>
+            <div class="cell-detail" id="cellDetail">
+              <div class="panel-card">
+                <div class="data-row"><span class="label">GRID REF</span><span class="value cyan" id="cellGrid">--</span></div>
+                <div class="data-row"><span class="label">SURFACE TYPE</span><span class="value" id="cellSurface">--</span></div>
+                <div class="cell-status-banner" id="cellStatusBanner">--</div>
+              </div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin:8px 0 4px">SNOW / ICE PROFILE (GPR)</div>
+              <div class="panel-card">
+                <div class="data-row"><span class="label">SNOW THICKNESS</span><span class="value" id="cellSnowDepth">--</span></div>
+                <div class="data-row"><span class="label">SNOW DENSITY</span><span class="value" id="cellDensity">--</span></div>
+                <div class="data-row"><span class="label">SWE</span><span class="value" id="cellSWE">--</span></div>
+                <div class="data-row"><span class="label">DEPTH TO GROUND</span><span class="value" id="cellDTG">--</span></div>
+                <div class="data-row"><span class="label">DIELECTRIC CONST</span><span class="value" id="cellDielectric">--</span></div>
+                <div class="data-row"><span class="label">GPR VELOCITY</span><span class="value" id="cellGPRVel">--</span></div>
+              </div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin:8px 0 4px">TERRAIN / SUBSURFACE</div>
+              <div class="panel-card">
+                <div class="data-row"><span class="label">ELEVATION (DEM)</span><span class="value" id="cellElev">--</span></div>
+                <div class="data-row"><span class="label">SLOPE</span><span class="value" id="cellSlope">--</span></div>
+                <div class="data-row"><span class="label">ACTIVE LAYER</span><span class="value" id="cellActiveLayer">--</span></div>
+                <div class="data-row"><span class="label">GROUND TEMP</span><span class="value" id="cellGroundTemp">--</span></div>
+              </div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:1px;margin:8px 0 4px">MOBILITY (CRREL SSM)</div>
+              <div class="panel-card">
+                <div class="data-row"><span class="label">BEARING CAPACITY</span><span class="value" id="cellBearing">--</span></div>
+                <div class="data-row"><span class="label">CBR</span><span class="value" id="cellCBR">--</span></div>
+                <div class="data-row"><span class="label">MOTION RESISTANCE</span><span class="value" id="cellMotionRes">--</span></div>
+                <div class="data-row"><span class="label">CONFIDENCE</span><span class="value" id="cellConfidence">--</span></div>
+              </div>
+            </div>
+            <div id="noCellSelected" style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;padding:16px">Click a survey tile on the map to view terrain data</div>
+          </div>
+        </div>
+
+        <div class="sidebar-panel" id="panelConvoy">
+          <div class="panel-section">
+            <div class="panel-section-title">CONVOY VEHICLES</div>
+            <div id="convoyList"><div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px">No vehicles in convoy</div></div>
+            <button class="mil-btn" onclick="showAddVehicleModal()" style="width:100%;margin-top:6px">+ ADD VEHICLE</button>
+          </div>
+          <div class="panel-section">
+            <div class="panel-section-title">ROUTE RISK ASSESSMENT</div>
+            <div id="noRouteRisk" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px">Complete survey & add vehicles to assess risk</div>
+            <div id="routeRiskCards" style="display:none"></div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-section-title">CONVOY SUMMARY</div>
+            <div class="panel-card">
+              <div class="data-row"><span class="label">TOTAL VEHICLES</span><span class="value" id="totalVehicles">0</span></div>
+              <div class="data-row"><span class="label">HEAVIEST CLASS</span><span class="value" id="heaviestClass">--</span></div>
+              <div class="data-row"><span class="label">LIMITING FACTOR</span><span class="value amber" id="limitingFactor">--</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-panel" id="panelHistory">
+          <div class="panel-section">
+            <div class="panel-section-title">MISSION HISTORY</div>
+            <div id="missionHistoryList"><div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px">No missions logged</div></div>
+            <button class="mil-btn" onclick="clearMissionHistory()" style="width:100%;margin-top:6px;font-size:8px">CLEAR ALL HISTORY</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="missionConfigModal">
+      <div class="modal" style="width:400px">
+        <div class="modal-title">MISSION CONFIGURATION</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">PLATFORM: <span style="color:var(--text-primary)">HARRIS CARRIER H6 HYBRID</span> · CALLSIGN: <span style="color:var(--green)">SNOW HAWK 1</span></div>
+        <div class="modal-field"><label>PATROL TYPE</label>
+          <div class="mission-type-group">
+            <button class="mission-type-btn active" id="btnLine" onclick="setMissionType('line')"><span class="icon">━</span>LINE PATROL</button>
+            <button class="mission-type-btn" id="btnGrid" onclick="setMissionType('grid')"><span class="icon">▦</span>GRID PATROL</button>
+          </div>
+        </div>
+        <div class="modal-field" id="gridWidthField" style="display:none">
+          <label>SCAN GRID WIDTH (ft)</label>
+          <select class="mil-select" id="gridWidthSelect" onchange="updateMissionSummary()" style="font-size:12px;padding:8px 10px">
+            <option value="6">6 ft (1 pass)</option>
+            <option value="12">12 ft (2 passes)</option>
+            <option value="18" selected>18 ft (3 passes)</option>
+            <option value="24">24 ft (4 passes)</option>
+            <option value="30">30 ft (5 passes)</option>
+          </select>
+        </div>
+        <div class="mission-summary" id="missionSummary">
+          <div class="row"><span class="label">ROUTE DIST</span><span class="val" id="msRouteDist">--</span></div>
+          <div class="row"><span class="label">TOTAL FLIGHT</span><span class="val" id="msTotalFlight">--</span></div>
+          <div class="row"><span class="label">FLIGHT TIME</span><span class="val" id="msFlightTime">--</span></div>
+          <div class="row"><span class="label">MAX ENDURANCE</span><span class="val">2:30:00</span></div>
+          <div class="row"><span class="label">POWER SOURCE</span><span class="val" style="color:var(--cyan)">HYBRID (FUEL + BATT)</span></div>
+          <div class="row"><span class="label">STATUS</span><span class="val ok" id="msStatus">WITHIN RANGE</span></div>
+        </div>
+        <div class="mission-divert" id="msDivert">⚠ FUEL DIVERT REQUIRED — UAV will RTB for refuel at waypoint <span id="msDivertWP">--</span>, then resume mission.</div>
+        <div class="modal-actions">
+          <button class="mil-btn" onclick="hideMissionConfig()" style="padding:8px 20px;font-size:11px">CANCEL</button>
+          <button class="mil-btn primary" id="msLaunchBtn" onclick="launchMission()" style="padding:8px 24px;font-size:11px;font-weight:700">▶ LAUNCH MISSION</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="addVehicleModal">
+      <div class="modal">
+        <div class="modal-title">ADD CONVOY VEHICLE</div>
+        <div class="modal-field"><label>CALLSIGN</label><input type="text" id="vehicleCallsign" placeholder="e.g., WOLF-1" maxlength="10"></div>
+        <div class="modal-field"><label>VEHICLE TYPE</label>
+          <select class="mil-select" id="vehicleType">
+            <option value="m1a2">M1A2 Abrams (63 tons)</option>
+            <option value="stryker">Stryker ICV (19 tons)</option>
+            <option value="jltv" selected>JLTV Oshkosh (7 tons)</option>
+            <option value="hmmwv">HMMWV M1165 (5.2 tons)</option>
+            <option value="bv206">BV206 Arctic (6.8 tons)</option>
+            <option value="paladin">M109A7 Paladin (36 tons)</option>
+            <option value="bradley">M2A3 Bradley (33 tons)</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="mil-btn" onclick="hideAddVehicleModal()">CANCEL</button>
+          <button class="mil-btn primary" onclick="addConvoyVehicle()">ADD</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /scale-wrapper -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// ARTIMUS — Core Application
+// ═══════════════════════════════════════════════════════════════
+
+// Arctic demo location — 76.6367°N, 66.0725°W
+const BARDUFOSS = [76.6367, -66.0725];
+const GRID_SIZE = 14;
+const CELL_METERS = 80;
+const DEG_PER_METER_LAT = 1 / 111320;
+const DEG_PER_METER_LNG = 1 / (111320 * Math.cos(BARDUFOSS[0] * Math.PI / 180));
+
+const VEHICLE_DATA = {
+  m1a2:    { name:'M1A2 Abrams',    psi:28, weight:'63 tons',  symbol:'⬡', color:'#ff1744' },
+  stryker: { name:'Stryker ICV',    psi:18, weight:'19 tons',  symbol:'⬡', color:'#ffab00' },
+  jltv:    { name:'JLTV Oshkosh',   psi:14, weight:'7 tons',   symbol:'◆', color:'#40c4ff' },
+  hmmwv:   { name:'HMMWV M1165',    psi:11, weight:'5.2 tons', symbol:'◆', color:'#40c4ff' },
+  bv206:   { name:'BV206 Arctic',   psi:3,  weight:'6.8 tons', symbol:'◇', color:'#00e676' },
+  paladin: { name:'M109A7 Paladin', psi:22, weight:'36 tons',  symbol:'⬡', color:'#ff1744' },
+  bradley: { name:'M2A3 Bradley',   psi:20, weight:'33 tons',  symbol:'⬡', color:'#ffab00' }
+};
+
+let mapMode = 'plan';
+let waypoints = [], waypointMarkers = [], waypointLine = null;
+let gridCells = [], gridRectangles = [], gridOverlayVisible = false;
+let terrainDataReady = false;
+let droneMarker = null, droneFlying = false, droneAnimationFrame = null;
+let convoyVehicles = [], convoyMarkers = {};
+let selectedCell = null, currentLayer = 'satellite';
+let surveyedCells = new Set();
+let measurePoints = [], measureLine = null, measureLabels = [];
+
+// ─── REAL-TIME MILITARY CLOCK ───
+function updateClock() {
+  const now = new Date();
+  const zh=String(now.getUTCHours()).padStart(2,'0'), zm=String(now.getUTCMinutes()).padStart(2,'0'), zs=String(now.getUTCSeconds()).padStart(2,'0');
+  document.getElementById('zuluClock').textContent = zh+':'+zm+':'+zs+'Z';
+  const lh=String(now.getHours()).padStart(2,'0'), lm=String(now.getMinutes()).padStart(2,'0'), ls=String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('localClock').textContent = 'LOCAL '+lh+':'+lm+':'+ls;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// RTK accuracy simulation — realistic drift between 1.0cm and 5.0cm
+let rtkAccuracy = 2.3;
+let rtkSats = 14;
+function updateRtkFix(){
+  // Smooth random walk
+  rtkAccuracy += (Math.random() - 0.48) * 0.4;
+  rtkAccuracy = Math.max(1.0, Math.min(5.0, rtkAccuracy));
+  // Satellites fluctuate between 12-16
+  if(Math.random() < 0.15) rtkSats += Math.random() > 0.5 ? 1 : -1;
+  rtkSats = Math.max(12, Math.min(16, rtkSats));
+  const el = document.getElementById('rtkFix');
+  const acc = rtkAccuracy.toFixed(1);
+  el.textContent = 'RTK FIXED (' + rtkSats + ' SAT) \u00B1' + acc + 'cm';
+  el.style.color = rtkAccuracy <= 3.0 ? 'var(--green)' : 'var(--amber)';
+}
+setInterval(updateRtkFix, 1800);
+updateRtkFix();
+
+// ─── MAP ───
+const map = L.map('map', { center: BARDUFOSS, zoom: 13, maxZoom: 13, zoomControl: false, attributionControl: true });
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// ─── BLUE FORCE TRACKER (Own Position) ───
+const bftIcon = L.divIcon({
+  className: 'bft-icon',
+  html: '<div class="bft-marker">' +
+    '<div class="bft-pulse"></div>' +
+    '<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="4" y="4" width="20" height="20" rx="2" fill="rgba(0,100,220,0.25)" stroke="#0078FF" stroke-width="2"/>' +
+      '<line x1="14" y1="2" x2="14" y2="10" stroke="#0078FF" stroke-width="1.5"/>' +
+      '<circle cx="14" cy="14" r="3" fill="#0078FF"/>' +
+    '</svg>' +
+  '</div>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14]
+});
+const bftMarker = L.marker(BARDUFOSS, { icon: bftIcon, interactive: true, zIndexOffset: 1000 }).addTo(map);
+bftMarker.bindTooltip('OWN POS<br>' + BARDUFOSS[0].toFixed(4) + '°N ' + BARDUFOSS[1].toFixed(4) + '°W', { className: 'grid-tooltip', offset: [0, -20] });
+
+const layers = {
+  satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution:'ESRI', maxZoom:13 }),
+  arcticdem: L.tileLayer('https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', { attribution:'ESRI World Hillshade', maxZoom:16 }),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution:'OpenTopoMap', maxZoom:17 }),
+  dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution:'CartoDB', maxZoom:19 })
+};
+layers.satellite.addTo(map);
+
+// ─── UTM / MGRS HELPERS ───
+function latLngToUTM(lat, lng) {
+  const zone = Math.floor((lng + 180) / 6) + 1;
+  const k0 = 0.9996, a = 6378137, f = 1/298.257223563, e = Math.sqrt(2*f - f*f), e2 = e*e/(1-e*e);
+  const latR = lat * Math.PI / 180, lngR = lng * Math.PI / 180;
+  const lngOrigin = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180;
+  const N = a / Math.sqrt(1 - e*e * Math.sin(latR)*Math.sin(latR));
+  const T = Math.tan(latR)*Math.tan(latR), C = e2 * Math.cos(latR)*Math.cos(latR);
+  const A = Math.cos(latR) * (lngR - lngOrigin);
+  const M = a*((1 - e*e/4 - 3*e*e*e*e/64)*latR - (3*e*e/8 + 3*e*e*e*e/32)*Math.sin(2*latR) + (15*e*e*e*e/256)*Math.sin(4*latR));
+  let easting = k0*N*(A + (1-T+C)*A*A*A/6 + (5-18*T+T*T)*A*A*A*A*A/120) + 500000;
+  let northing = k0*(M + N*Math.tan(latR)*(A*A/2 + (5-T+9*C+4*C*C)*A*A*A*A/24));
+  if (lat < 0) northing += 10000000;
+  const bands = 'CDEFGHJKLMNPQRSTUVWX';
+  const bandIdx = Math.min(Math.max(Math.floor((lat + 80) / 8), 0), 19);
+  return { zone, band: bands[bandIdx], easting, northing };
+}
+
+function utmToLatLng(zone, easting, northing, northern) {
+  const k0 = 0.9996, a = 6378137, f = 1/298.257223563, e = Math.sqrt(2*f - f*f), e1 = (1-Math.sqrt(1-e*e))/(1+Math.sqrt(1-e*e));
+  const x = easting - 500000, y = northern ? northing : northing - 10000000;
+  const M = y / k0, mu = M / (a*(1 - e*e/4 - 3*e*e*e*e/64 - 5*e*e*e*e*e*e/256));
+  const phi1 = mu + (3*e1/2 - 27*e1*e1*e1/32)*Math.sin(2*mu) + (21*e1*e1/16 - 55*e1*e1*e1*e1/32)*Math.sin(4*mu) + (151*e1*e1*e1/96)*Math.sin(6*mu);
+  const e2 = e*e/(1-e*e), N1 = a/Math.sqrt(1-e*e*Math.sin(phi1)*Math.sin(phi1));
+  const T1 = Math.tan(phi1)*Math.tan(phi1), C1 = e2*Math.cos(phi1)*Math.cos(phi1);
+  const R1 = a*(1-e*e)/Math.pow(1-e*e*Math.sin(phi1)*Math.sin(phi1),1.5);
+  const D = x / (N1*k0);
+  const lat = phi1 - (N1*Math.tan(phi1)/R1)*(D*D/2 - (5+3*T1+10*C1-4*C1*C1-9*e2)*D*D*D*D/24 + (61+90*T1+298*C1+45*T1*T1-252*e2)*D*D*D*D*D*D/720);
+  const lng = (D - (1+2*T1+C1)*D*D*D/6 + (5-2*C1+28*T1-3*C1*C1+8*e2+24*T1*T1)*D*D*D*D*D/120) / Math.cos(phi1);
+  const lngOrigin = ((zone - 1) * 6 - 180 + 3) * Math.PI / 180;
+  return [lat * 180 / Math.PI, (lngOrigin + lng) * 180 / Math.PI];
+}
+
+function getMGRS(lat, lng) {
+  const utm = latLngToUTM(lat, lng);
+  const e100k = Math.floor(utm.easting / 100000);
+  const n100k = Math.floor(utm.northing % 2000000 / 100000);
+  const setIdx = (utm.zone - 1) % 6;
+  const eCols = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const nRows = (setIdx % 2 === 0) ? 'ABCDEFGHJKLMNPQRSTUV' : 'FGHJKLMNPQRSTUVABCDE';
+  const eLetter = eCols[(e100k - 1 + setIdx * 8) % 24];
+  const nLetter = nRows[n100k % 20];
+  const eStr = String(Math.floor(utm.easting % 100000)).padStart(5, '0');
+  const nStr = String(Math.floor(utm.northing % 100000)).padStart(5, '0');
+  return { gzd: utm.zone + utm.band, sq: eLetter + nLetter, easting: eStr, northing: nStr, full: utm.zone + utm.band + ' ' + eLetter + nLetter + ' ' + eStr + ' ' + nStr };
+}
+
+// ─── MILITARY GRID OVERLAY (Canvas Tile Layer — no flicker) ───
+let gridScaleKm = 100;
+const gridScales = [1, 10, 100, 1000];
+
+function cycleGridScale() {
+  const idx = gridScales.indexOf(gridScaleKm);
+  gridScaleKm = gridScales[(idx + 1) % gridScales.length];
+  document.getElementById('gridScaleBtn').textContent = 'GRID ' + (gridScaleKm >= 1000 ? (gridScaleKm/1000)+'K' : gridScaleKm + 'K');
+  if (mgrsVisible) drawMGRSGrid();
+  updateMGRSInfo();
+}
+
+const MilGridLayer = L.GridLayer.extend({
+  createTile: function(coords) {
+    const tile = document.createElement('canvas');
+    const sz = this.getTileSize();
+    tile.width = sz.x; tile.height = sz.y;
+    const ctx = tile.getContext('2d');
+
+    const zoom = coords.z;
+    const cosLat = Math.cos(BARDUFOSS[0] * Math.PI / 180);
+    // Use the user-selected grid scale
+    const kmPerDeg = 111.32;
+    const latStep = gridScaleKm / kmPerDeg;
+    const lngStep = gridScaleKm / (kmPerDeg * cosLat);
+    const majorEvery = 5;
+
+    // Tile bounds in lat/lng
+    const nw = this._map.unproject([coords.x * sz.x, coords.y * sz.y], zoom);
+    const se = this._map.unproject([(coords.x + 1) * sz.x, (coords.y + 1) * sz.y], zoom);
+    const tLatMax = nw.lat, tLatMin = se.lat, tLngMin = nw.lng, tLngMax = se.lng;
+
+    // Pixel conversion helpers
+    const tileOrigin = { x: coords.x * sz.x, y: coords.y * sz.y };
+    const self = this;
+    function toPixel(lat, lng) {
+      const pt = self._map.project([lat, lng], zoom);
+      return { x: pt.x - tileOrigin.x, y: pt.y - tileOrigin.y };
+    }
+
+    // Horizontal lines
+    const hStart = Math.floor(tLatMin / latStep) * latStep;
+    const hEnd = Math.ceil(tLatMax / latStep) * latStep;
+    for (let lat = hStart; lat <= hEnd; lat += latStep) {
+      const idx = Math.round(lat / latStep);
+      const isMajor = idx % majorEvery === 0;
+      const p1 = toPixel(lat, tLngMin), p2 = toPixel(lat, tLngMax);
+      ctx.strokeStyle = isMajor ? 'rgba(0,60,100,0.6)' : 'rgba(0,80,120,0.3)';
+      ctx.lineWidth = isMajor ? 1.5 : 0.7;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+
+      // Northing label
+      if (isMajor) {
+        try {
+          const utm = latLngToUTM(lat, (tLngMin + tLngMax) / 2);
+          const nLabel = String(Math.floor(utm.northing / 1000) % 100).padStart(2, '0');
+          const lp = toPixel(lat, tLngMin);
+          ctx.font = 'bold 10px JetBrains Mono, monospace';
+          ctx.fillStyle = 'rgba(0,40,80,0.85)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+          ctx.lineWidth = 2.5;
+          ctx.strokeText(nLabel, lp.x + 4, lp.y - 3);
+          ctx.fillText(nLabel, lp.x + 4, lp.y - 3);
+        } catch(e) {}
+      }
+    }
+
+    // Vertical lines
+    const vStart = Math.floor(tLngMin / lngStep) * lngStep;
+    const vEnd = Math.ceil(tLngMax / lngStep) * lngStep;
+    for (let lng = vStart; lng <= vEnd; lng += lngStep) {
+      const idx = Math.round(lng / lngStep);
+      const isMajor = idx % majorEvery === 0;
+      const p1 = toPixel(tLatMax, lng), p2 = toPixel(tLatMin, lng);
+      ctx.strokeStyle = isMajor ? 'rgba(0,60,100,0.6)' : 'rgba(0,80,120,0.3)';
+      ctx.lineWidth = isMajor ? 1.5 : 0.7;
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+
+      // Easting label
+      if (isMajor) {
+        try {
+          const utm = latLngToUTM((tLatMin + tLatMax) / 2, lng);
+          const eLabel = String(Math.floor(utm.easting / 1000) % 100).padStart(2, '0');
+          const lp = toPixel(tLatMin, lng);
+          ctx.font = 'bold 10px JetBrains Mono, monospace';
+          ctx.fillStyle = 'rgba(0,40,80,0.85)';
+          ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+          ctx.lineWidth = 2.5;
+          ctx.strokeText(eLabel, lp.x + 3, lp.y - 6);
+          ctx.fillText(eLabel, lp.x + 3, lp.y - 6);
+        } catch(e) {}
+      }
+    }
+
+    return tile;
+  }
+});
+
+let mgrsGridLayer = null;
+let mgrsVisible = false;
+
+function drawMGRSGrid() {
+  if (mgrsGridLayer) map.removeLayer(mgrsGridLayer);
+  mgrsGridLayer = new MilGridLayer({ opacity: 1, interactive: false, pane: 'overlayPane' });
+  mgrsGridLayer.addTo(map);
+  mgrsVisible = true;
+}
+
+// Fixed MGRS info overlay (HTML, not map layer — stays in place)
+const mgrsInfoDiv = document.createElement('div');
+mgrsInfoDiv.id = 'mgrsInfo';
+mgrsInfoDiv.style.cssText = 'position:absolute;top:6px;left:6px;z-index:1000;font:bold 11px JetBrains Mono,monospace;color:rgba(0,40,80,0.95);background:rgba(255,255,255,0.6);padding:3px 8px;border-radius:3px;pointer-events:none;';
+document.getElementById('map').appendChild(mgrsInfoDiv);
+function updateMGRSInfo() {
+  const ctr = map.getCenter();
+  const mgrs = getMGRS(ctr.lat, ctr.lng);
+  mgrsInfoDiv.textContent = mgrs.gzd + ' ' + mgrs.sq + ' \u2014 ' + gridScaleKm + 'km GRID';
+}
+map.on('moveend', updateMGRSInfo);
+map.on('zoomend', updateMGRSInfo);
+
+// ─── TERRAIN GRID (Go/No-Go overlay) ───
+const gridOrigin = (function() {
+  const cLat=BARDUFOSS[0]+0.003, cLng=BARDUFOSS[1]-0.01, half=(GRID_SIZE*CELL_METERS)/2;
+  return [cLat+half*DEG_PER_METER_LAT, cLng-half*DEG_PER_METER_LNG];
+})();
+
+function cellToLatLng(r,c){return[gridOrigin[0]-r*CELL_METERS*DEG_PER_METER_LAT,gridOrigin[1]+c*CELL_METERS*DEG_PER_METER_LNG];}
+function cellCenter(r,c){return[gridOrigin[0]-(r+0.5)*CELL_METERS*DEG_PER_METER_LAT,gridOrigin[1]+(c+0.5)*CELL_METERS*DEG_PER_METER_LNG];}
+function latLngToCell(lat,lng){const r=Math.floor((gridOrigin[0]-lat)/(CELL_METERS*DEG_PER_METER_LAT)),c=Math.floor((lng-gridOrigin[1])/(CELL_METERS*DEG_PER_METER_LNG));return(r>=0&&r<GRID_SIZE&&c>=0&&c<GRID_SIZE)?{row:r,col:c}:null;}
+
+(function generateTerrainData(){
+  let seed=42;function rand(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646;}
+  for(let r=0;r<GRID_SIZE;r++){gridCells[r]=[];for(let c=0;c<GRID_SIZE;c++){
+    const dist=Math.sqrt((r-7)**2+(c-7)**2),elev=320+(r*4)-(c*2)+rand()*40,snowBase=0.5+dist*0.12+rand()*0.8,densBase=200+rand()*200;
+    const riverDist=Math.abs((r-c)-2),nearRiver=riverDist<2,rocky=r<3&&c>10;
+    const snow=nearRiver?snowBase+1+rand()*0.5:snowBase,dens=nearRiver?densBase*0.6:(rocky?0:densBase),slope=rocky?15+rand()*20:2+rand()*8;
+    let psi;if(rocky)psi=40+rand()*20;else if(nearRiver)psi=3+rand()*8;else psi=8+(dens/400)*25+rand()*10;
+    const surface=rocky?'Rocky/Exposed':nearRiver?'Slush':dens>350?'Ice Crust':dens>250?'Packed Snow':'Fresh Snow';
+    gridCells[r][c]={row:r,col:c,elevation:Math.round(elev),snowDepth:Math.round(snow*10)/10,density:Math.round(dens),bearingPsi:Math.round(psi*10)/10,slope:Math.round(slope*10)/10,surface,confidence:70+Math.floor(rand()*25),surveyed:false};
+  }}
+})();
+
+function getStatusColor(cell,vPsi){
+  if(!cell.surveyed)return{fill:'rgba(30,42,58,0.3)',border:'rgba(30,42,58,0.5)',status:'unknown'};
+  if(cell.slope>25)return{fill:'rgba(255,23,68,0.35)',border:'rgba(255,23,68,0.6)',status:'nogo'};
+  const r=cell.bearingPsi/vPsi;
+  if(r>=1.3)return{fill:'rgba(0,230,118,0.3)',border:'rgba(0,230,118,0.5)',status:'go'};
+  if(r>=0.9)return{fill:'rgba(255,171,0,0.35)',border:'rgba(255,171,0,0.5)',status:'caution'};
+  return{fill:'rgba(255,23,68,0.35)',border:'rgba(255,23,68,0.6)',status:'nogo'};
+}
+
+function getVPsi(){const v=document.getElementById('vehicleFilter').value;if(v==='all')return Math.max(...Object.values(VEHICLE_DATA).map(d=>d.psi));return VEHICLE_DATA[v].psi;}
+
+function drawGrid(){
+  gridRectangles.forEach(r=>map.removeLayer(r));gridRectangles=[];const psi=getVPsi();
+  for(let r=0;r<GRID_SIZE;r++)for(let c=0;c<GRID_SIZE;c++){
+    const cell=gridCells[r][c],col=getStatusColor(cell,psi);
+    const rect=L.rectangle([cellToLatLng(r,c),cellToLatLng(r+1,c+1)],{color:col.border,weight:0.5,fillColor:col.fill,fillOpacity:1,interactive:true});
+    rect.on('click',()=>selectCell(r,c));
+    rect.on('mouseover',function(){if(cell.surveyed)this.setStyle({weight:2,color:'#00e5ff'});});
+    rect.on('mouseout',function(){const s=getStatusColor(cell,getVPsi()),sel=selectedCell&&selectedCell.row===r&&selectedCell.col===c;this.setStyle({weight:sel?2:0.5,color:sel?'#00e5ff':s.border});});
+    rect.addTo(map);gridRectangles.push(rect);
+  }
+  gridOverlayVisible=true;updateTerrainStats();
+}
+
+function toggleGrid(){
+  if(mgrsVisible){map.removeLayer(mgrsGridLayer);mgrsVisible=false;mgrsInfoDiv.style.display='none';document.getElementById('tbBtnGrid').classList.remove('active');}
+  else{drawMGRSGrid();mgrsInfoDiv.style.display='block';document.getElementById('tbBtnGrid').classList.add('active');}
+}
+function toggleTerrainOverlay(){
+  document.getElementById('tbBtnTerrain').classList.toggle('active');
+  if(flightPathTiles.length){
+    // Toggle flight path tiles visibility
+    const vis=flightPathTiles[0]._map;
+    if(vis){flightPathTiles.forEach(t=>map.removeLayer(t));}
+    else{flightPathTiles.forEach(t=>t.addTo(map));}
+  } else if(!terrainDataReady){showToast('No terrain data — run UAV survey first','amber');}
+}
+
+function selectCell(row,col){
+  const cell=gridCells[row][col];selectedCell=cell;
+  if(!cell.surveyed){document.getElementById('cellDetail').classList.remove('visible');document.getElementById('noCellSelected').textContent='Cell not yet surveyed';document.getElementById('noCellSelected').style.display='block';switchTab('terrain');return;}
+  const psi=getVPsi(),col2=getStatusColor(cell,psi);
+  document.getElementById('noCellSelected').style.display='none';document.getElementById('cellDetail').classList.add('visible');
+  document.getElementById('cellGrid').textContent='CELL '+row+','+col;
+  document.getElementById('cellElev').textContent=cell.elevation+' m MSL';
+  document.getElementById('cellSnowDepth').textContent=cell.snowDepth+' m';
+  document.getElementById('cellDensity').textContent=cell.density+' kg/m³';
+  const bEl=document.getElementById('cellBearing');bEl.textContent=cell.bearingPsi+' PSI';bEl.className='value '+(cell.bearingPsi>=psi*1.3?'green':cell.bearingPsi>=psi*0.9?'amber':'red');
+  document.getElementById('cellSlope').textContent=cell.slope+'°';document.getElementById('cellSurface').textContent=cell.surface;document.getElementById('cellConfidence').textContent=cell.confidence+'%';
+  const ban=document.getElementById('cellStatusBanner');ban.className='cell-status-banner '+col2.status;
+  const vfv=document.getElementById('vehicleFilter').value;const vn=vfv==='all'?'ALL VEHICLES':VEHICLE_DATA[vfv].name;
+  ban.textContent=col2.status==='go'?vn+': GO':col2.status==='caution'?vn+': CAUTION':vn+': NO-GO';
+  if(gridOverlayVisible){drawGrid();const idx=row*GRID_SIZE+col;if(gridRectangles[idx]){gridRectangles[idx].setStyle({weight:2,color:'#00e5ff'});gridRectangles[idx].bringToFront();}}
+  switchTab('terrain');
+}
+
+// Helper: get tile stats from flightPathTiles for a given PSI requirement
+function getTileStats(vPsi){
+  let go=0,cau=0,ng=0;
+  flightPathTiles.forEach(t=>{
+    const d=t._tileData;if(!d)return;
+    const bPsi=parseFloat(d.bearingPsi),slope=parseFloat(d.slope);
+    if(slope>25){ng++;}
+    else{const ratio=bPsi/vPsi;if(ratio>=1.3)go++;else if(ratio>=0.9)cau++;else ng++;}
+  });
+  return {go,cau,ng,total:go+cau+ng};
+}
+
+function updateTerrainStats(){
+  const psi=getVPsi();
+  if(!flightPathTiles.length){
+    document.getElementById('goCount').textContent='--';document.getElementById('cautionCount').textContent='--';
+    document.getElementById('nogoCount').textContent='--';document.getElementById('totalTileCount').textContent='--';
+    document.getElementById('mobilityIndex').textContent='--';document.getElementById('mobilityFill').style.width='0%';
+    const vf=document.getElementById('vehicleFilter').value;document.getElementById('minPsi').textContent=vf==='all'?'ALL ('+psi+' PSI max)':psi+' PSI';
+    return;
+  }
+  const s=getTileStats(psi);
+  document.getElementById('goCount').textContent=s.go;document.getElementById('cautionCount').textContent=s.cau;
+  document.getElementById('nogoCount').textContent=s.ng;document.getElementById('totalTileCount').textContent=s.total;
+  const mob=s.total>0?Math.round((s.go+s.cau*0.5)/s.total*100):0;
+  document.getElementById('mobilityIndex').textContent=s.total>0?mob+'%':'--';
+  document.getElementById('mobilityFill').style.width=mob+'%';
+  // Color the bar based on mobility
+  const bar=document.getElementById('mobilityFill');
+  bar.style.background=mob>=70?'linear-gradient(90deg, #1b5e20, var(--green))':mob>=40?'linear-gradient(90deg, #5c4000, var(--amber))':'linear-gradient(90deg, #6e0018, var(--red))';
+  const vf=document.getElementById('vehicleFilter').value;document.getElementById('minPsi').textContent=vf==='all'?'ALL ('+psi+' PSI max)':psi+' PSI';
+}
+
+function updateVehicleFilter(){
+  recolorFlightTiles();
+  updateTerrainStats();updateConvoyRisk();
+  if(selectedCell&&selectedCell.surveyed)selectCell(selectedCell.row,selectedCell.col);
+  if(terrainDataReady)generateMobilityReport();
+}
+
+function recolorFlightTiles(){
+  const vPsi=getVPsi();
+  flightPathTiles.forEach(t=>{
+    const d=t._tileData;if(!d)return;
+    const bPsi=parseFloat(d.bearingPsi),slope=parseFloat(d.slope);
+    const mobIndex=Math.round(Math.min(100,Math.max(0,(bPsi/vPsi)*60+(1-slope/30)*40)));
+    let fill,border,status;
+    if(slope>25){fill='rgba(255,23,68,0.55)';border='rgba(255,23,68,0.8)';status='NO-GO';}
+    else{const ratio=bPsi/vPsi;
+      if(ratio>=1.3){fill='rgba(0,230,118,0.5)';border='rgba(0,230,118,0.7)';status='GO';}
+      else if(ratio>=0.9){fill='rgba(255,171,0,0.55)';border='rgba(255,171,0,0.7)';status='CAUTION';}
+      else{fill='rgba(255,23,68,0.55)';border='rgba(255,23,68,0.8)';status='NO-GO';}
+    }
+    t.setStyle({color:border,fillColor:fill});
+    t.setTooltipContent(
+      '<b>MOB: '+mobIndex+'%</b> — '+status+' | '+d.surface+'<br>'+
+      'SWE: '+d.swe+'mm | DEPTH: '+d.snowDepth+'m | DTG: '+d.depthToGround+'m<br>'+
+      'DENSITY: '+d.density+' kg/m³ | PSI: '+bPsi+' | CBR: '+d.cbr+'%<br>'+
+      'SLOPE: '+slope+'° | GND: '+d.groundTemp+'°C'
+    );
+  });
+}
+
+function generateMobilityReport(){
+  const sec=document.getElementById('mobilityReportSection');
+  const el=document.getElementById('mobilityReport');
+  if(!flightPathTiles.length){sec.style.display='none';return;}
+  sec.style.display='block';
+
+  const vPsi=getVPsi();
+  const st=getTileStats(vPsi);
+  const totalT=st.total;
+
+  // Compute mob index per tile for avg/min/max
+  let minMob=100,maxMob=0,sumMob=0;
+  let surfaces={};
+  flightPathTiles.forEach(t=>{
+    const d=t._tileData;if(!d)return;
+    const bPsi=parseFloat(d.bearingPsi),slope=parseFloat(d.slope);
+    const m=Math.round(Math.min(100,Math.max(0,(bPsi/vPsi)*60+(1-slope/30)*40)));
+    sumMob+=m;if(m<minMob)minMob=m;if(m>maxMob)maxMob=m;
+    surfaces[d.surface]=(surfaces[d.surface]||0)+1;
+  });
+  const avgMob=totalT>0?Math.round(sumMob/totalT):0;
+  const goP=totalT>0?Math.round(st.go/totalT*100):0;
+  const cauP=totalT>0?Math.round(st.cau/totalT*100):0;
+  const nogoP=totalT>0?Math.round(st.ng/totalT*100):0;
+
+  // Route distance
+  let routeLen=0;
+  for(let i=1;i<waypoints.length;i++) routeLen+=L.latLng(waypoints[i-1].lat,waypoints[i-1].lng).distanceTo(L.latLng(waypoints[i].lat,waypoints[i].lng));
+  const routeKm=(routeLen/1000).toFixed(2);
+
+  // Predominant terrain
+  let topSurface='Unknown';let topCount=0;
+  for(const s in surfaces){if(surfaces[s]>topCount){topCount=surfaces[s];topSurface=s;}}
+
+  // Overall assessment
+  let overallClass,overallColor;
+  if(goP>=70){overallClass='GO — ROUTE PASSABLE';overallColor='var(--green)';}
+  else if(goP>=40){overallClass='CAUTION — PARTIAL OBSTACLES';overallColor='var(--amber)';}
+  else{overallClass='NO-GO — ROUTE DENIED';overallColor='var(--red)';}
+
+  const vf=document.getElementById('vehicleFilter').value;
+  const vName=vf==='all'?'ALL VEHICLE CLASSES':VEHICLE_DATA[vf].name;
+
+  el.innerHTML=
+    '<div style="color:'+overallColor+';font-size:13px;font-weight:700;margin-bottom:8px;letter-spacing:1px">'+overallClass+'</div>'+
+    '<div style="margin-bottom:10px;color:var(--text-primary);font-size:11px">'+
+      'Survey covered <span style="color:var(--cyan)">'+routeKm+' km</span> across <span style="color:var(--cyan)">'+totalT+'</span> assessed tiles.'+
+    '</div>'+
+    '<div style="margin-bottom:6px"><span style="color:var(--text-dim)">VEHICLE:</span> <span style="color:var(--cyan)">'+vName+'</span> ('+vPsi+' PSI req)</div>'+
+    '<div style="margin-bottom:6px"><span style="color:var(--text-dim)">AVG MOBILITY:</span> <span style="color:'+(avgMob>=70?'var(--green)':avgMob>=40?'var(--amber)':'var(--red)')+';font-size:13px;font-weight:700">'+avgMob+'%</span> <span style="color:var(--text-dim)">(min '+minMob+'% / max '+maxMob+'%)</span></div>'+
+    '<div style="margin-bottom:6px"><span style="color:var(--green)">'+st.go+' GO ('+goP+'%)</span> · <span style="color:var(--amber)">'+st.cau+' CAUTION ('+cauP+'%)</span> · <span style="color:var(--red)">'+st.ng+' NO-GO ('+nogoP+'%)</span></div>'+
+    '<div style="margin-bottom:6px"><span style="color:var(--text-dim)">PRIMARY TERRAIN:</span> <span style="color:var(--text-primary)">'+topSurface+'</span></div>'+
+    '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);color:var(--text-dim);font-size:10px;line-height:1.5">'+
+      (nogoP>30?'WARNING: >30% of surveyed corridor is impassable. Recommend alternate route or lighter vehicle class.':
+       cauP>40?'ADVISORY: Significant caution areas detected. Reduce speed and maintain interval through flagged sectors.':
+       'Route assessed as generally passable. Standard convoy procedures apply. Monitor conditions for changes.')+
+    '</div>';
+}
+
+function setMapMode(mode){
+  mapMode=mode;
+  document.getElementById('tbBtnPointer').classList.toggle('active',mode==='pointer');
+  document.getElementById('tbBtnPlan').classList.toggle('active',mode==='plan');
+  document.getElementById('tbBtnMeasure').classList.toggle('active',mode==='measure');
+  if(mode!=='measure')clearMeasure();
+  map.getContainer().style.cursor=(mode==='plan'||mode==='measure')?'crosshair':'';
+  if(mode==='plan')showToast('Click map to place survey waypoints','cyan');
+  if(mode==='measure')showToast('Click two points to measure distance','cyan');
+}
+
+function clearMeasure(){if(measureLine){map.removeLayer(measureLine);measureLine=null;}measureLabels.forEach(l=>map.removeLayer(l));measureLabels=[];measurePoints=[];}
+
+function handleMeasureClick(ll){
+  if(measurePoints.length>=1){measurePoints.push(ll);const d=measurePoints[0].distanceTo(measurePoints[1]);if(measureLine)map.removeLayer(measureLine);measureLine=L.polyline(measurePoints,{color:'#ffab00',weight:2,dashArray:'6,4'}).addTo(map);const mid=L.latLng((measurePoints[0].lat+measurePoints[1].lat)/2,(measurePoints[0].lng+measurePoints[1].lng)/2);const lab=L.tooltip({permanent:true,direction:'center',className:'grid-tooltip'}).setLatLng(mid).setContent(Math.round(d)+' m').addTo(map);measureLabels.push(lab);measurePoints=[];}
+  else{clearMeasure();measurePoints.push(ll);}
+}
+
+function switchLayer(type,btn){
+  Object.values(layers).forEach(l=>map.removeLayer(l));layers[type].addTo(map);currentLayer=type;
+  document.querySelectorAll('.layer-btn').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');
+  if(gridOverlayVisible)setTimeout(()=>drawGrid(),100);
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.sidebar-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-panel').forEach(p=>p.classList.remove('active'));
+  const idx=tab==='mission'?0:tab==='terrain'?1:tab==='convoy'?2:3;
+  document.querySelectorAll('.sidebar-tab')[idx].classList.add('active');
+  document.getElementById('panel'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+}
+
+// ─── WAYPOINTS ───
+function addWaypoint(ll){
+  if(droneFlying)return;waypoints.push({lat:ll.lat,lng:ll.lng,id:Date.now()});
+  const icon=L.divIcon({className:'waypoint-icon',html:'<div class="wp-marker">'+waypoints.length+'</div>',iconSize:[20,20],iconAnchor:[10,10]});
+  const m=L.marker(ll,{icon,draggable:true}).addTo(map);
+  m.on('dragend',()=>{const p=m.getLatLng(),i=waypointMarkers.indexOf(m);if(i>=0){waypoints[i].lat=p.lat;waypoints[i].lng=p.lng;}updateWaypointLine();updateWaypointList();updateSurveyEstimates();});
+  waypointMarkers.push(m);updateWaypointLine();updateWaypointList();updateSurveyEstimates();
+}
+
+function removeWaypoint(i){map.removeLayer(waypointMarkers[i]);waypoints.splice(i,1);waypointMarkers.splice(i,1);waypointMarkers.forEach((m,j)=>m.setIcon(L.divIcon({className:'waypoint-icon',html:'<div class="wp-marker">'+(j+1)+'</div>',iconSize:[20,20],iconAnchor:[10,10]})));updateWaypointLine();updateWaypointList();updateSurveyEstimates();}
+
+function clearWaypoints(){if(droneFlying)return;waypointMarkers.forEach(m=>map.removeLayer(m));waypointMarkers=[];waypoints=[];if(waypointLine){map.removeLayer(waypointLine);waypointLine=null;}updateWaypointList();updateSurveyEstimates();}
+
+function updateWaypointLine(){if(waypointLine)map.removeLayer(waypointLine);if(waypointMarkers.length<2){waypointLine=null;return;}waypointLine=L.polyline(waypointMarkers.map(m=>m.getLatLng()),{color:'#00e5ff',weight:2,dashArray:'8,6',opacity:0.7}).addTo(map);}
+
+function updateWaypointList(){
+  const list=document.getElementById('waypointList');document.getElementById('waypointCount').textContent=waypoints.length+' WAYPOINT'+(waypoints.length!==1?'S':'');
+  if(!waypoints.length){list.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px 0">Click map in PLAN mode to add waypoints</div>';document.getElementById('deployBtn').disabled=true;return;}
+  list.innerHTML=waypoints.map((w,i)=>'<div class="waypoint-item"><span class="wp-num">'+(i+1)+'</span><span class="wp-coord">'+w.lat.toFixed(4)+'°N '+w.lng.toFixed(4)+'°E</span><button class="wp-remove" onclick="removeWaypoint('+i+')">✕</button></div>').join('');
+  document.getElementById('deployBtn').disabled=waypoints.length<2;
+}
+
+function getCoveredCells(){
+  const covered=new Set();
+  for(let i=0;i<waypoints.length;i++){const cell=latLngToCell(waypoints[i].lat,waypoints[i].lng);if(cell)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const nr=cell.row+dr,nc=cell.col+dc;if(nr>=0&&nr<GRID_SIZE&&nc>=0&&nc<GRID_SIZE)covered.add(nr+','+nc);}}
+  for(let i=1;i<waypoints.length;i++){const steps=Math.ceil(L.latLng(waypoints[i-1].lat,waypoints[i-1].lng).distanceTo(L.latLng(waypoints[i].lat,waypoints[i].lng))/(CELL_METERS/2));for(let s=0;s<=steps;s++){const t=s/Math.max(steps,1),lat=waypoints[i-1].lat+(waypoints[i].lat-waypoints[i-1].lat)*t,lng=waypoints[i-1].lng+(waypoints[i].lng-waypoints[i-1].lng)*t,cell=latLngToCell(lat,lng);if(cell)for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const nr=cell.row+dr,nc=cell.col+dc;if(nr>=0&&nr<GRID_SIZE&&nc>=0&&nc<GRID_SIZE)covered.add(nr+','+nc);}}}
+  return covered;
+}
+
+function updateSurveyEstimates(){
+  if(waypoints.length<2){document.getElementById('estFlightTime').textContent='--:--';document.getElementById('coverageArea').textContent='--';document.getElementById('cellsScanned').textContent='0 / 0';return;}
+  let dist=0;for(let i=1;i<waypoints.length;i++)dist+=L.latLng(waypoints[i-1].lat,waypoints[i-1].lng).distanceTo(L.latLng(waypoints[i].lat,waypoints[i].lng));
+  const sec=dist/8.2+waypoints.length*15,m=Math.floor(sec/60),s=Math.floor(sec%60);
+  document.getElementById('estFlightTime').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  const cov=getCoveredCells(),area=cov.size*CELL_METERS*CELL_METERS;
+  document.getElementById('coverageArea').textContent=(area>=1e6?(area/1e6).toFixed(2)+' km²':(area/1e3).toFixed(1)+'k m²')+' (~'+cov.size+' cells)';
+  document.getElementById('cellsScanned').textContent='0 / '+cov.size;
+}
+
+// ─── MISSION CONFIG ───
+const DRONE_SPEED = 8.2; // m/s
+const DRONE_MAX_FLIGHT = 2.5 * 3600; // 2.5 hours in seconds
+const SCAN_WIDTH_FT = 6; // base scan width
+const DRONE_CALLSIGN = 'SNOW HAWK 1';
+let missionType = 'line';
+let missionFlightPath = [];
+let flightPathTiles = [];
+let previewLines = []; // flight path preview on map
+
+function deployDrone() {
+  if (waypoints.length < 2 || droneFlying) return;
+  showMissionConfig();
+}
+
+function showMissionConfig() {
+  missionType = 'line';
+  document.getElementById('btnLine').classList.add('active');
+  document.getElementById('btnGrid').classList.remove('active');
+  document.getElementById('gridWidthField').style.display = 'none';
+  updateMissionSummary();
+  document.getElementById('missionConfigModal').classList.add('visible');
+}
+function hideMissionConfig() {
+  clearPreview();
+  document.getElementById('missionConfigModal').classList.remove('visible');
+}
+
+function clearPreview() {
+  previewLines.forEach(l => map.removeLayer(l));
+  previewLines = [];
+}
+
+function drawFlightPreview() {
+  clearPreview();
+  const path = buildFlightPath();
+  // Draw each pass as a separate line for clarity
+  // Remove the RTB leg from preview
+  const flightPts = path.slice(0, -1); // exclude return-to-home
+
+  if (missionType === 'grid') {
+    const gridWidthFt = parseInt(document.getElementById('gridWidthSelect').value);
+    const passes = Math.ceil(gridWidthFt / SCAN_WIDTH_FT);
+    const wpCount = waypoints.length;
+    // Each pass has wpCount points
+    for (let p = 0; p < passes; p++) {
+      const start = p * wpCount;
+      const end = start + wpCount;
+      const pts = flightPts.slice(start, end).map(w => [w.lat, w.lng]);
+      if (pts.length < 2) continue;
+      // Center pass is brighter
+      const isCenter = p === Math.floor((passes - 1) / 2);
+      const line = L.polyline(pts, {
+        color: isCenter ? '#00e5ff' : '#ffab00',
+        weight: isCenter ? 2.5 : 1.5,
+        dashArray: isCenter ? null : '6,4',
+        opacity: isCenter ? 0.9 : 0.7,
+        interactive: false
+      }).addTo(map);
+      previewLines.push(line);
+      // Connection line between passes
+      if (p < passes - 1) {
+        const nextStart = (p + 1) * wpCount;
+        const connFrom = flightPts[end - 1], connTo = flightPts[nextStart];
+        if (connFrom && connTo) {
+          const conn = L.polyline([[connFrom.lat, connFrom.lng], [connTo.lat, connTo.lng]], {
+            color: '#ffab00', weight: 1, dashArray: '3,6', opacity: 0.5, interactive: false
+          }).addTo(map);
+          previewLines.push(conn);
+        }
+      }
+    }
+    // Draw scan corridor boundary
+    const first = waypoints[0], last = waypoints[waypoints.length - 1];
+    const dLng = (last.lng - first.lng) * Math.cos(first.lat * Math.PI / 180);
+    const dLat = last.lat - first.lat;
+    const heading = Math.atan2(dLng, dLat);
+    const perpLatPerM = -Math.sin(heading) * DEG_PER_METER_LAT;
+    const perpLngPerM = Math.cos(heading) * DEG_PER_METER_LNG;
+    const halfWidthM = (gridWidthFt * 0.3048 * 25) / 2; // demo scale
+    // Left boundary
+    const leftPts = waypoints.map(w => [w.lat + perpLatPerM * halfWidthM, w.lng + perpLngPerM * halfWidthM]);
+    const rightPts = waypoints.map(w => [w.lat - perpLatPerM * halfWidthM, w.lng - perpLngPerM * halfWidthM]);
+    const boundary = L.polygon([...leftPts, ...rightPts.reverse()], {
+      color: 'rgba(0,229,255,0.4)', weight: 1, dashArray: '4,4',
+      fillColor: 'rgba(0,229,255,0.06)', fillOpacity: 1, interactive: false
+    }).addTo(map);
+    previewLines.push(boundary);
+  } else {
+    // Line patrol — just show the path
+    const pts = flightPts.map(w => [w.lat, w.lng]);
+    if (pts.length >= 2) {
+      const line = L.polyline(pts, { color: '#00e5ff', weight: 2, opacity: 0.9, interactive: false }).addTo(map);
+      previewLines.push(line);
+    }
+  }
+  // RTB leg
+  const lastFlight = flightPts[flightPts.length - 1];
+  if (lastFlight) {
+    const rtb = L.polyline([[lastFlight.lat, lastFlight.lng], BARDUFOSS], {
+      color: '#ff1744', weight: 1, dashArray: '4,6', opacity: 0.6, interactive: false
+    }).addTo(map);
+    previewLines.push(rtb);
+  }
+}
+
+function setMissionType(type) {
+  missionType = type;
+  document.getElementById('btnLine').classList.toggle('active', type === 'line');
+  document.getElementById('btnGrid').classList.toggle('active', type === 'grid');
+  document.getElementById('gridWidthField').style.display = type === 'grid' ? 'block' : 'none';
+  updateMissionSummary();
+}
+
+function buildFlightPath() {
+  const path = [];
+  if (missionType === 'line') {
+    waypoints.forEach(w => path.push({ lat: w.lat, lng: w.lng }));
+  } else {
+    // Grid patrol: fly full route length, shift over, fly back, repeat
+    const gridWidthFt = parseInt(document.getElementById('gridWidthSelect').value);
+    const scanPassM = 1.8288 * 25; // 6ft scaled x25 for demo visibility
+    const passes = Math.ceil(gridWidthFt / SCAN_WIDTH_FT);
+
+    // Compute route heading and perpendicular offset direction
+    const first = waypoints[0], last = waypoints[waypoints.length - 1];
+    const dLng = (last.lng - first.lng) * Math.cos(first.lat * Math.PI / 180);
+    const dLat = last.lat - first.lat;
+    const heading = Math.atan2(dLng, dLat); // radians
+    // Perpendicular is 90° to heading — offset in meters converted to degrees
+    const perpLatPerM = -Math.sin(heading) * DEG_PER_METER_LAT;
+    const perpLngPerM = Math.cos(heading) * DEG_PER_METER_LNG;
+
+    const halfW = (passes - 1) / 2;
+    for (let p = 0; p < passes; p++) {
+      const offM = (p - halfW) * scanPassM;
+      const oLat = perpLatPerM * offM;
+      const oLng = perpLngPerM * offM;
+      // Even passes: fly forward along waypoints; odd passes: fly reverse
+      if (p % 2 === 0) {
+        for (let i = 0; i < waypoints.length; i++) {
+          path.push({ lat: waypoints[i].lat + oLat, lng: waypoints[i].lng + oLng });
+        }
+      } else {
+        for (let i = waypoints.length - 1; i >= 0; i--) {
+          path.push({ lat: waypoints[i].lat + oLat, lng: waypoints[i].lng + oLng });
+        }
+      }
+    }
+  }
+  // Add return to home
+  path.push({ lat: BARDUFOSS[0], lng: BARDUFOSS[1] });
+  return path;
+}
+
+function calcFlightDist(path) {
+  let d = 0;
+  for (let i = 1; i < path.length; i++) d += L.latLng(path[i - 1].lat, path[i - 1].lng).distanceTo(L.latLng(path[i].lat, path[i].lng));
+  return d;
+}
+
+function updateMissionSummary() {
+  const path = buildFlightPath();
+  const routeDist = calcFlightDist(waypoints.map(w => ({ lat: w.lat, lng: w.lng })));
+  const totalDist = calcFlightDist(path);
+  const flightSec = totalDist / DRONE_SPEED + path.length * 5; // 5s per turn
+  const h = Math.floor(flightSec / 3600), m = Math.floor((flightSec % 3600) / 60), s = Math.floor(flightSec % 60);
+
+  document.getElementById('msRouteDist').textContent = (routeDist / 1000).toFixed(2) + ' km';
+  document.getElementById('msTotalFlight').textContent = (totalDist / 1000).toFixed(2) + ' km';
+  document.getElementById('msFlightTime').textContent = h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+
+  const statusEl = document.getElementById('msStatus');
+  const divertEl = document.getElementById('msDivert');
+
+  if (flightSec <= DRONE_MAX_FLIGHT) {
+    statusEl.textContent = 'WITHIN RANGE'; statusEl.className = 'val ok';
+    divertEl.style.display = 'none';
+  } else {
+    // Find divert point
+    let elapsed = 0;
+    const maxOneLeg = DRONE_MAX_FLIGHT * 0.45; // reserve 55% for return + margin
+    let divertIdx = path.length - 1;
+    for (let i = 1; i < path.length; i++) {
+      const seg = L.latLng(path[i - 1].lat, path[i - 1].lng).distanceTo(L.latLng(path[i].lat, path[i].lng));
+      elapsed += seg / DRONE_SPEED + 5;
+      const retDist = L.latLng(path[i].lat, path[i].lng).distanceTo(L.latLng(BARDUFOSS[0], BARDUFOSS[1]));
+      const retTime = retDist / DRONE_SPEED;
+      if (elapsed + retTime > DRONE_MAX_FLIGHT * 0.9) { divertIdx = i; break; }
+    }
+    statusEl.textContent = 'EXCEEDS ENDURANCE'; statusEl.className = 'val warn';
+    divertEl.style.display = 'block';
+    document.getElementById('msDivertWP').textContent = divertIdx;
+  }
+  missionFlightPath = path;
+  drawFlightPreview();
+}
+
+function launchMission() {
+  clearPreview();
+  document.getElementById('missionConfigModal').classList.remove('visible');
+  const path = missionFlightPath;
+  if (!path.length) return;
+  droneFlying = true;
+
+  document.getElementById('deployBtn').style.display = 'none';
+  document.getElementById('recallBtn').style.display = 'block';
+  document.getElementById('uavStatus').textContent = 'IN FLIGHT';
+  document.getElementById('uavStatus').style.color = 'var(--green)';
+  document.getElementById('droneHud').classList.add('visible');
+  document.getElementById('dataStatus').textContent = 'IN PROGRESS';
+  document.getElementById('dataStatus').style.color = 'var(--amber)';
+  showToast(DRONE_CALLSIGN + ' DEPLOYED — ' + missionType.toUpperCase() + ' PATROL', 'green');
+
+  // Drone icon — rotatable quadcopter with callsign
+  function makeDroneIcon(heading) {
+    return L.divIcon({
+      className: 'drone-icon',
+      html: '<div class="drone-marker" style="transform:rotate(' + heading + 'deg)">' +
+        '<div class="drone-pulse"></div>' +
+        '<svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">' +
+          '<line x1="4" y1="4" x2="20" y2="20" stroke="#00e676" stroke-width="1.5"/>' +
+          '<line x1="20" y1="4" x2="4" y2="20" stroke="#00e676" stroke-width="1.5"/>' +
+          '<circle cx="4" cy="4" r="3" fill="none" stroke="#00e676" stroke-width="1"/>' +
+          '<circle cx="20" cy="4" r="3" fill="none" stroke="#00e676" stroke-width="1"/>' +
+          '<circle cx="4" cy="20" r="3" fill="none" stroke="#00e676" stroke-width="1"/>' +
+          '<circle cx="20" cy="20" r="3" fill="none" stroke="#00e676" stroke-width="1"/>' +
+          '<rect x="9" y="9" width="6" height="6" rx="1" fill="#00e676"/>' +
+          '<circle cx="12" cy="8" r="1" fill="#00e676"/>' +
+        '</svg>' +
+      '</div>' +
+      '<div style="position:absolute;top:26px;left:50%;transform:translateX(-50%);white-space:nowrap;font:bold 8px JetBrains Mono,monospace;color:#00e676;text-shadow:0 0 4px rgba(0,0,0,0.9);pointer-events:none">' + DRONE_CALLSIGN + '</div>',
+      iconSize: [24, 40], iconAnchor: [12, 12]
+    });
+  }
+
+  droneMarker = L.marker([path[0].lat, path[0].lng], { icon: makeDroneIcon(0), zIndexOffset: 1000 }).addTo(map);
+
+  let curSeg = 0, prog = 0, batt = 98;
+  const trail = []; let trailLine = null;
+  const totalSegs = path.length - 1;
+  // Track scanned positions for post-scan tiles
+  const scannedTrail = [];
+
+  function getHeading(from, to) {
+    const dLng = (to.lng - from.lng) * Math.cos(from.lat * Math.PI / 180);
+    const dLat = to.lat - from.lat;
+    const angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+    return (angle + 360) % 360;
+  }
+
+  function animate() {
+    if (!droneFlying) return;
+    if (curSeg >= totalSegs) { droneReturnAndProcess(); if (trailLine) map.removeLayer(trailLine); return; }
+    prog += 0.005;
+    if (prog >= 1) { prog = 0; curSeg++; if (curSeg >= totalSegs) { droneReturnAndProcess(); if (trailLine) map.removeLayer(trailLine); return; } }
+
+    const from = path[curSeg], to = path[curSeg + 1];
+    const lat = from.lat + (to.lat - from.lat) * prog;
+    const lng = from.lng + (to.lng - from.lng) * prog;
+    const heading = getHeading(from, to);
+
+    droneMarker.setLatLng([lat, lng]);
+    droneMarker.setIcon(makeDroneIcon(heading));
+
+    trail.push([lat, lng]);
+    scannedTrail.push({ lat, lng, heading });
+    if (trailLine) map.removeLayer(trailLine);
+    trailLine = L.polyline(trail, { color: '#00e676', weight: 2, opacity: 0.85 }).addTo(map);
+
+    const tp = (curSeg + prog) / totalSegs;
+    const wpIdx = Math.min(Math.floor(tp * waypoints.length) + 1, waypoints.length);
+    document.getElementById('droneWpStatus').textContent = wpIdx + '/' + waypoints.length;
+    document.getElementById('droneProgressFill').style.width = (tp * 100) + '%';
+    batt = Math.max(15, 98 - tp * 45);
+    document.getElementById('droneBatt').textContent = Math.round(batt) + '%';
+    document.getElementById('uavBattery').textContent = Math.round(batt) + '%';
+    const sp = Math.round(tp * 100);
+    document.getElementById('surveyPercent').textContent = sp + '%';
+    document.getElementById('surveyProgressFill').style.width = sp + '%';
+
+    droneAnimationFrame = requestAnimationFrame(animate);
+  }
+  droneAnimationFrame = requestAnimationFrame(animate);
+
+  function droneReturnAndProcess() {
+    droneFlying = false;
+    if (droneMarker) { map.removeLayer(droneMarker); droneMarker = null; }
+    document.getElementById('droneHud').classList.remove('visible');
+    document.getElementById('uavStatus').textContent = 'RETURNED';
+    document.getElementById('uavStatus').style.color = 'var(--cyan)';
+    showToast(DRONE_CALLSIGN + ' RETURNED — Processing data...', 'amber');
+
+    const overlay = document.getElementById('processingOverlay');
+    overlay.classList.add('visible');
+    const steps = ['Ingesting DEM point cloud...', 'Processing GPR snow profiles...', 'Computing snow density model...', 'Running ML bearing capacity analysis...', 'Generating RGB orthomosaic...', 'Classifying surface types...', 'Finalizing Go/No-Go assessment...'];
+    let si = 0;
+    const iv = setInterval(() => { si++; if (si < steps.length) document.getElementById('processingStep').textContent = steps[si]; }, 700);
+
+    setTimeout(() => {
+      clearInterval(iv); overlay.classList.remove('visible');
+
+      // Generate 2m terrain tiles aligned to flight path
+      generateFlightPathTiles(scannedTrail);
+
+      terrainDataReady = true;
+      document.getElementById('deployBtn').style.display = 'block';
+      document.getElementById('recallBtn').style.display = 'none';
+      document.getElementById('uavStatus').textContent = 'STANDBY';
+      document.getElementById('uavStatus').style.color = 'var(--green)';
+      document.getElementById('dataStatus').textContent = 'COMPLETE';
+      document.getElementById('dataStatus').style.color = 'var(--green)';
+      document.getElementById('surveyPercent').textContent = '100%';
+      document.getElementById('surveyProgressFill').style.width = '100%';
+      updateConvoyRisk();
+      updateTerrainStats();
+
+      // Switch to interact/pointer mode and show terrain tab
+      setMapMode('pointer');
+      switchTab('terrain');
+      generateMobilityReport();
+      showToast('TERRAIN DATA READY — Review mobility assessment in TERRAIN tab', 'green');
+    }, steps.length * 700 + 400);
+  }
+}
+
+// ─── FLIGHT PATH 1M TILES ───
+let missionHistory = JSON.parse(localStorage.getItem('artimus_missions') || '[]');
+
+function generateFlightPathTiles(trail) {
+  flightPathTiles.forEach(r => map.removeLayer(r));
+  flightPathTiles = [];
+  if (!trail.length || waypoints.length < 2) return;
+
+  const scanWidthFt = missionType === 'grid' ? parseInt(document.getElementById('gridWidthSelect').value) : 6;
+  const scanPassM = 1.8288 * 25; // 6ft pass width scaled x25 for demo visibility
+  const passes = missionType === 'grid' ? Math.ceil(scanWidthFt / SCAN_WIDTH_FT) : 1;
+  const tileLength = 50; // meters along-track per tile segment
+  const passWidth = scanPassM;
+  const vPsi = getVPsi();
+
+  // Build segment list from waypoints (each segment has start, end, length, heading, unit vectors)
+  const segments = [];
+  let totalRouteLen = 0;
+  for (let i = 1; i < waypoints.length; i++) {
+    const a = waypoints[i - 1], b = waypoints[i];
+    const segLen = L.latLng(a.lat, a.lng).distanceTo(L.latLng(b.lat, b.lng));
+    const dLng = (b.lng - a.lng) * Math.cos(a.lat * Math.PI / 180);
+    const dLat = b.lat - a.lat;
+    const heading = Math.atan2(dLng, dLat);
+    segments.push({
+      startLat: a.lat, startLng: a.lng,
+      aLat: Math.cos(heading) * DEG_PER_METER_LAT, aLng: Math.sin(heading) * DEG_PER_METER_LNG,
+      pLat: -Math.sin(heading) * DEG_PER_METER_LAT, pLng: Math.cos(heading) * DEG_PER_METER_LNG,
+      len: segLen, cumStart: totalRouteLen
+    });
+    totalRouteLen += segLen;
+  }
+  const numTilesAlong = Math.max(1, Math.ceil(totalRouteLen / tileLength));
+
+  // Helper: get position + local vectors at a distance along the route
+  function posAtDist(d) {
+    for (const s of segments) {
+      if (d <= s.cumStart + s.len + 0.01) {
+        const t = Math.max(0, d - s.cumStart);
+        return { lat: s.startLat + s.aLat * t, lng: s.startLng + s.aLng * t, aLat: s.aLat, aLng: s.aLng, pLat: s.pLat, pLng: s.pLng };
+      }
+    }
+    const ls = segments[segments.length - 1];
+    return { lat: ls.startLat + ls.aLat * ls.len, lng: ls.startLng + ls.aLng * ls.len, aLat: ls.aLat, aLng: ls.aLng, pLat: ls.pLat, pLng: ls.pLng };
+  }
+
+  // Deterministic random per tile
+  function tileRand(r, c) {
+    let s = ((r * 7919 + c * 6271 + 137) & 0x7FFFFFFF) % 2147483647;
+    s = (s * 16807) % 2147483647; return (s - 1) / 2147483646;
+  }
+
+  // Terrain zones for realistic risk clusters
+  const zones = [];
+  for (let z = 0; z < 12; z++) {
+    zones.push({
+      along: tileRand(z * 100, 0) * numTilesAlong,
+      cross: tileRand(0, z * 100) * passes,
+      radius: 1.5 + tileRand(z * 50, z * 50) * 4,
+      type: z < 3 ? 'ice' : z < 5 ? 'slush' : z < 7 ? 'rock' : z < 9 ? 'fresh' : 'packed'
+    });
+  }
+
+  const halfW = (passes - 1) / 2;
+  const halfPass = passWidth / 2;
+  const tileData = [];
+
+  for (let p = 0; p < passes; p++) {
+    const crossOffM = (p - halfW) * scanPassM;
+
+    for (let seg = 0; seg < numTilesAlong; seg++) {
+      const alongStart = seg * tileLength;
+      const alongEnd = Math.min((seg + 1) * tileLength, totalRouteLen);
+      const alongMid = (alongStart + alongEnd) / 2;
+      const halfLen = (alongEnd - alongStart) / 2;
+
+      // Get position and local orientation at the midpoint along the route
+      const pos = posAtDist(alongMid);
+      // Also get positions at start and end for corner placement (handles curves)
+      const posS = posAtDist(alongStart);
+      const posE = posAtDist(alongEnd);
+
+      // Tile center offset perpendicular for this pass
+      const cLat = pos.lat + pos.pLat * crossOffM;
+      const cLng = pos.lng + pos.pLng * crossOffM;
+
+      // Terrain type from zone proximity
+      let baseType = 'packed';
+      let zoneDist = 999;
+      for (const z of zones) {
+        const d = Math.sqrt((seg - z.along) ** 2 + (p - z.cross) ** 2);
+        if (d < z.radius && d < zoneDist) { zoneDist = d; baseType = z.type; }
+      }
+
+      const r1 = tileRand(seg, p), r2 = tileRand(seg + 1000, p), r3 = tileRand(seg, p + 1000), r4 = tileRand(seg + 500, p + 500);
+      const r5 = tileRand(seg + 2000, p), r6 = tileRand(seg, p + 2000), r7 = tileRand(seg + 3000, p + 3000);
+      let elev, snowDepth, density, slope, bearingPsi, surface;
+      let swe, depthToGround, activeLayer, groundTemp, cbr, motionRes, dielectric, gprVelocity;
+
+      if (baseType === 'ice') {
+        elev = 325 + r1 * 15; snowDepth = 0.1 + r2 * 0.3; density = 380 + r3 * 70;
+        slope = 1 + r4 * 4; bearingPsi = 30 + r1 * 15; surface = 'Ice Crust';
+        swe = snowDepth * density; depthToGround = snowDepth + 0.02 + r5 * 0.05;
+        activeLayer = 0.3 + r6 * 0.4; groundTemp = -8 - r5 * 6; cbr = 40 + r6 * 25;
+        motionRes = 0.02 + r7 * 0.03; dielectric = 3.0 + r5 * 0.4; gprVelocity = 0.17 + r6 * 0.01;
+      } else if (baseType === 'slush') {
+        elev = 318 + r1 * 10; snowDepth = 0.8 + r2 * 1.5; density = 100 + r3 * 120;
+        slope = 1 + r4 * 5; bearingPsi = 2 + r1 * 6; surface = 'Slush/Melt';
+        swe = snowDepth * density; depthToGround = snowDepth + 0.1 + r5 * 0.3;
+        activeLayer = 0.8 + r6 * 1.0; groundTemp = -1 - r5 * 3; cbr = 3 + r6 * 8;
+        motionRes = 0.15 + r7 * 0.20; dielectric = 6.0 + r5 * 4; gprVelocity = 0.12 + r6 * 0.03;
+      } else if (baseType === 'rock') {
+        elev = 340 + r1 * 30; snowDepth = 0; density = 0;
+        slope = 12 + r4 * 25; bearingPsi = 45 + r1 * 20; surface = 'Rocky/Exposed';
+        swe = 0; depthToGround = 0;
+        activeLayer = 0.1 + r6 * 0.2; groundTemp = -12 - r5 * 8; cbr = 60 + r6 * 30;
+        motionRes = 0.04 + r7 * 0.03; dielectric = 5.0 + r5 * 2; gprVelocity = 0.13 + r6 * 0.02;
+      } else if (baseType === 'fresh') {
+        elev = 322 + r1 * 12; snowDepth = 0.5 + r2 * 1; density = 120 + r3 * 80;
+        slope = 1 + r4 * 6; bearingPsi = 4 + r1 * 8; surface = 'Fresh Snow';
+        swe = snowDepth * density; depthToGround = snowDepth + 0.05 + r5 * 0.15;
+        activeLayer = 0.4 + r6 * 0.6; groundTemp = -5 - r5 * 5; cbr = 8 + r6 * 12;
+        motionRes = 0.12 + r7 * 0.15; dielectric = 1.5 + r5 * 0.5; gprVelocity = 0.22 + r6 * 0.02;
+      } else {
+        elev = 320 + r1 * 20; snowDepth = 0.3 + r2 * 0.8; density = 220 + r3 * 150;
+        slope = 1 + r4 * 8; bearingPsi = 10 + (density / 400) * 20 + r1 * 8; surface = 'Packed Snow';
+        swe = snowDepth * density; depthToGround = snowDepth + 0.03 + r5 * 0.1;
+        activeLayer = 0.5 + r6 * 0.5; groundTemp = -6 - r5 * 6; cbr = 15 + r6 * 20;
+        motionRes = 0.06 + r7 * 0.10; dielectric = 1.8 + r5 * 0.8; gprVelocity = 0.20 + r6 * 0.03;
+      }
+
+      const mobIndex = Math.round(Math.min(100, Math.max(0, (bearingPsi / vPsi) * 60 + (1 - slope / 30) * 40)));
+
+      let fill, border, status;
+      if (slope > 25) { fill = 'rgba(255,23,68,0.55)'; border = 'rgba(255,23,68,0.8)'; status = 'NO-GO'; }
+      else {
+        const ratio = bearingPsi / vPsi;
+        if (ratio >= 1.3) { fill = 'rgba(0,230,118,0.5)'; border = 'rgba(0,230,118,0.7)'; status = 'GO'; }
+        else if (ratio >= 0.9) { fill = 'rgba(255,171,0,0.55)'; border = 'rgba(255,171,0,0.7)'; status = 'CAUTION'; }
+        else { fill = 'rgba(255,23,68,0.55)'; border = 'rgba(255,23,68,0.8)'; status = 'NO-GO'; }
+      }
+
+      // 4 corners using local orientation at start/end of this tile segment
+      const corners = [
+        [posE.lat + posE.pLat * (crossOffM + halfPass), posE.lng + posE.pLng * (crossOffM + halfPass)],
+        [posE.lat + posE.pLat * (crossOffM - halfPass), posE.lng + posE.pLng * (crossOffM - halfPass)],
+        [posS.lat + posS.pLat * (crossOffM - halfPass), posS.lng + posS.pLng * (crossOffM - halfPass)],
+        [posS.lat + posS.pLat * (crossOffM + halfPass), posS.lng + posS.pLng * (crossOffM + halfPass)]
+      ];
+
+      const poly = L.polygon(corners, {
+        color: border, weight: 1, fillColor: fill, fillOpacity: 0.85, interactive: true
+      });
+      poly.bindTooltip(
+        '<b>MOB: ' + mobIndex + '%</b> — ' + status + ' | ' + surface + '<br>' +
+        'SWE: ' + Math.round(swe) + 'mm | DEPTH: ' + snowDepth.toFixed(2) + 'm | DTG: ' + depthToGround.toFixed(2) + 'm<br>' +
+        'DENSITY: ' + Math.round(density) + ' kg/m³ | PSI: ' + bearingPsi.toFixed(1) + ' | CBR: ' + cbr.toFixed(0) + '%<br>' +
+        'SLOPE: ' + slope.toFixed(1) + '° | GND: ' + groundTemp.toFixed(1) + '°C',
+        { className: 'grid-tooltip' }
+      );
+      // Store tile data on the polygon for click selection
+      poly._tileData = { seg, p, elev: Math.round(elev), snowDepth: snowDepth.toFixed(2), density: Math.round(density), bearingPsi: bearingPsi.toFixed(1), slope: slope.toFixed(1), surface, swe: Math.round(swe), depthToGround: depthToGround.toFixed(2), activeLayer: activeLayer.toFixed(2), groundTemp: groundTemp.toFixed(1), cbr: cbr.toFixed(0), motionRes: motionRes.toFixed(3), dielectric: dielectric.toFixed(1), gprVelocity: gprVelocity.toFixed(3), confidence: 70 + Math.floor(tileRand(seg + 200, p + 200) * 25) };
+      poly.on('click', function(){ selectFlightTile(this); });
+      poly.addTo(map);
+      flightPathTiles.push(poly);
+      tileData.push({ corners, fill, border, status, mobIndex, elev: Math.round(elev), snowDepth: snowDepth.toFixed(2), density: Math.round(density), bearingPsi: bearingPsi.toFixed(1), slope: slope.toFixed(1), surface, swe: Math.round(swe), depthToGround: depthToGround.toFixed(2), cbr: cbr.toFixed(0), groundTemp: groundTemp.toFixed(1) });
+    }
+  }
+
+  // Save to mission history
+  const mission = {
+    id: 'MSN-' + Date.now(),
+    timestamp: new Date().toISOString(),
+    type: missionType,
+    waypoints: waypoints.map(w => ({ lat: w.lat, lng: w.lng })),
+    scanWidthFt: scanWidthFt,
+    tileCount: tileData.length,
+    tiles: tileData,
+    trail: trail.filter((_, i) => i % 10 === 0).map(p => [p.lat, p.lng])
+  };
+  missionHistory.push(mission);
+  try { localStorage.setItem('artimus_missions', JSON.stringify(missionHistory)); } catch (e) { /* storage full */ }
+  renderMissionHistory();
+}
+
+function selectFlightTile(poly){
+  const d=poly._tileData;if(!d)return;
+  const psi=getVPsi();const bPsi=parseFloat(d.bearingPsi);const slope=parseFloat(d.slope);
+  let statusTxt,statusClass;
+  if(slope>25){statusTxt='NO-GO';statusClass='nogo';}
+  else{const ratio=bPsi/psi;if(ratio>=1.3){statusTxt='GO';statusClass='go';}else if(ratio>=0.9){statusTxt='CAUTION';statusClass='caution';}else{statusTxt='NO-GO';statusClass='nogo';}}
+  const vfv=document.getElementById('vehicleFilter').value;const vn=vfv==='all'?'ALL VEHICLES':VEHICLE_DATA[vfv].name;
+  document.getElementById('noCellSelected').style.display='none';
+  document.getElementById('cellDetail').classList.add('visible');
+  document.getElementById('cellGrid').textContent='TILE '+d.seg+','+d.p;
+  document.getElementById('cellSurface').textContent=d.surface;
+  const ban=document.getElementById('cellStatusBanner');ban.className='cell-status-banner '+statusClass;
+  ban.textContent=vn+': '+statusTxt;
+  // Snow/Ice Profile
+  document.getElementById('cellSnowDepth').textContent=d.snowDepth+' m';
+  document.getElementById('cellDensity').textContent=d.density+' kg/m³';
+  document.getElementById('cellSWE').textContent=d.swe+' mm';
+  document.getElementById('cellDTG').textContent=d.depthToGround+' m';
+  document.getElementById('cellDielectric').textContent='ε '+d.dielectric;
+  document.getElementById('cellGPRVel').textContent=d.gprVelocity+' m/ns';
+  // Terrain/Subsurface
+  document.getElementById('cellElev').textContent=d.elev+' m MSL';
+  document.getElementById('cellSlope').textContent=d.slope+'°';
+  document.getElementById('cellActiveLayer').textContent=d.activeLayer+' m';
+  const gtEl=document.getElementById('cellGroundTemp');gtEl.textContent=d.groundTemp+'°C';
+  gtEl.className='value '+(parseFloat(d.groundTemp)<=-5?'cyan':parseFloat(d.groundTemp)<=-2?'amber':'red');
+  // Mobility
+  const bEl=document.getElementById('cellBearing');bEl.textContent=d.bearingPsi+' PSI';bEl.className='value '+(bPsi>=psi*1.3?'green':bPsi>=psi*0.9?'amber':'red');
+  document.getElementById('cellCBR').textContent=d.cbr+'%';
+  document.getElementById('cellMotionRes').textContent=d.motionRes;
+  document.getElementById('cellConfidence').textContent=d.confidence+'%';
+  switchTab('terrain');
+}
+
+function recallDrone() {
+  droneFlying = false; if (droneAnimationFrame) cancelAnimationFrame(droneAnimationFrame);
+  if (droneMarker) { map.removeLayer(droneMarker); droneMarker = null; }
+  document.getElementById('droneHud').classList.remove('visible');
+  document.getElementById('deployBtn').style.display = 'block'; document.getElementById('recallBtn').style.display = 'none';
+  document.getElementById('uavStatus').textContent = 'RECALLED'; document.getElementById('uavStatus').style.color = 'var(--amber)';
+  document.getElementById('dataStatus').textContent = 'MISSION ABORTED'; document.getElementById('dataStatus').style.color = 'var(--red)';
+  showToast(DRONE_CALLSIGN + ' RECALLED — Mission aborted', 'red');
+}
+
+// ─── MISSION HISTORY ───
+let historyLayers = {}; // track visible layers per mission
+
+function renderMissionHistory() {
+  const el = document.getElementById('missionHistoryList');
+  if (!missionHistory.length) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px">No missions logged</div>';
+    return;
+  }
+  el.innerHTML = missionHistory.map((m, i) => {
+    const dt = new Date(m.timestamp);
+    const timeStr = String(dt.getUTCHours()).padStart(2, '0') + ':' + String(dt.getUTCMinutes()).padStart(2, '0') + 'Z';
+    const dateStr = dt.toISOString().split('T')[0];
+    const visible = historyLayers[m.id] ? 'active' : '';
+    return '<div class="panel-card" style="margin-bottom:6px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+        '<span style="font-family:var(--mono);font-size:10px;color:var(--cyan)">' + m.id.slice(0, 12) + '</span>' +
+        '<span style="font-family:var(--mono);font-size:8px;color:var(--text-dim)">' + dateStr + ' ' + timeStr + '</span>' +
+      '</div>' +
+      '<div class="data-row"><span class="label">TYPE</span><span class="value">' + m.type.toUpperCase() + ' PATROL</span></div>' +
+      '<div class="data-row"><span class="label">TILES</span><span class="value">' + m.tileCount + ' cells</span></div>' +
+      '<div class="data-row"><span class="label">SCAN WIDTH</span><span class="value">' + m.scanWidthFt + ' ft</span></div>' +
+      '<div style="display:flex;gap:4px;margin-top:6px">' +
+        '<button class="mil-btn ' + visible + '" style="flex:1;font-size:8px" onclick="toggleMissionView(' + i + ')">' + (visible ? '◉ VISIBLE' : '○ SHOW') + '</button>' +
+        '<button class="mil-btn" style="font-size:8px;padding:3px 6px" onclick="centerMission(' + i + ')">⌖</button>' +
+        '<button class="mil-btn" style="font-size:8px;padding:3px 6px;color:var(--red)" onclick="deleteMission(' + i + ')">✕</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleMissionView(idx) {
+  const m = missionHistory[idx];
+  if (historyLayers[m.id]) {
+    // Hide
+    historyLayers[m.id].forEach(l => map.removeLayer(l));
+    delete historyLayers[m.id];
+  } else {
+    // Show tiles and trail
+    const layers = [];
+    // Trail line
+    if (m.trail && m.trail.length > 1) {
+      const tl = L.polyline(m.trail, { color: '#00e676', weight: 1.5, opacity: 0.5 }).addTo(map);
+      layers.push(tl);
+    }
+    // Tiles
+    if (m.tiles) {
+      m.tiles.forEach(t => {
+        const poly = L.polygon(t.corners, {
+          color: t.border, weight: 0.3, fillColor: t.fill, fillOpacity: 1, interactive: true
+        });
+        poly.bindTooltip(
+          '<b>MOB: ' + t.mobIndex + '%</b> — ' + t.status + ' | ' + t.surface + '<br>' +
+          'ELEV: ' + t.elev + 'm | SNOW: ' + t.snowDepth + 'm<br>' +
+          'DENSITY: ' + t.density + ' kg/m³ | PSI: ' + t.bearingPsi + '<br>' +
+          'SLOPE: ' + t.slope + '°',
+          { className: 'grid-tooltip' }
+        );
+        poly.addTo(map);
+        layers.push(poly);
+      });
+    }
+    historyLayers[m.id] = layers;
+  }
+  renderMissionHistory();
+}
+
+function centerMission(idx) {
+  const m = missionHistory[idx];
+  if (m.waypoints && m.waypoints.length) {
+    const bounds = L.latLngBounds(m.waypoints.map(w => [w.lat, w.lng]));
+    map.fitBounds(bounds.pad(0.3));
+  }
+}
+
+function deleteMission(idx) {
+  const m = missionHistory[idx];
+  if (historyLayers[m.id]) {
+    historyLayers[m.id].forEach(l => map.removeLayer(l));
+    delete historyLayers[m.id];
+  }
+  missionHistory.splice(idx, 1);
+  try { localStorage.setItem('artimus_missions', JSON.stringify(missionHistory)); } catch (e) {}
+  renderMissionHistory();
+}
+
+function clearMissionHistory() {
+  Object.values(historyLayers).forEach(ls => ls.forEach(l => map.removeLayer(l)));
+  historyLayers = {};
+  missionHistory = [];
+  localStorage.removeItem('artimus_missions');
+  renderMissionHistory();
+}
+
+// Load saved missions on startup
+renderMissionHistory();
+
+// ─── CONVOY ───
+let vehCtr=0;
+function showAddVehicleModal(){document.getElementById('addVehicleModal').classList.add('visible');document.getElementById('vehicleCallsign').value='';setTimeout(()=>document.getElementById('vehicleCallsign').focus(),50);}
+function hideAddVehicleModal(){document.getElementById('addVehicleModal').classList.remove('visible');}
+
+function addConvoyVehicle(){
+  const cs=document.getElementById('vehicleCallsign').value.trim().toUpperCase()||'VEH-'+(++vehCtr),type=document.getElementById('vehicleType').value,vd=VEHICLE_DATA[type];
+  convoyVehicles.push({id:Date.now(),callsign:cs,type,name:vd.name,psi:vd.psi,weight:vd.weight});
+  hideAddVehicleModal();renderConvoyList();updateConvoySummary();updateConvoyRisk();
+  placeVehicleMarker(convoyVehicles[convoyVehicles.length-1],[BARDUFOSS[0]-0.005+convoyVehicles.length*0.0008,BARDUFOSS[1]+0.015]);
+  showToast(cs+' added to convoy','cyan');
+}
+
+function placeVehicleMarker(v,pos){
+  const vd=VEHICLE_DATA[v.type],icon=L.divIcon({className:'vehicle-map-icon',html:'<div class="vehicle-map-marker"><div class="v-icon" style="border-color:'+vd.color+'"><span style="font-size:11px;color:'+vd.color+'">'+vd.symbol+'</span></div><div class="v-label" style="color:'+vd.color+'">'+v.callsign+'</div></div>',iconSize:[30,30],iconAnchor:[15,15]});
+  const m=L.marker(pos,{icon,draggable:true,zIndexOffset:500}).addTo(map);
+  m.bindTooltip(v.callsign+' — '+vd.name+'<br>'+vd.weight+' | '+vd.psi+' PSI',{className:'grid-tooltip',offset:[0,-20]});
+  convoyMarkers[v.id]=m;
+}
+
+function removeConvoyVehicle(id){convoyVehicles=convoyVehicles.filter(v=>v.id!==id);if(convoyMarkers[id]){map.removeLayer(convoyMarkers[id]);delete convoyMarkers[id];}renderConvoyList();updateConvoySummary();updateConvoyRisk();}
+
+function renderConvoyList(){
+  const list=document.getElementById('convoyList');
+  if(!convoyVehicles.length){list.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--text-dim);text-align:center;padding:12px">No vehicles in convoy</div>';return;}
+  list.innerHTML=convoyVehicles.map(v=>{
+    const vd=VEHICLE_DATA[v.type];let dot='#4a5a6a';
+    if(terrainDataReady&&flightPathTiles.length){const st=getTileStats(vd.psi);const p=st.total>0?st.go/st.total:0;dot=p>0.6?'#00e676':p>0.3?'#ffab00':'#ff1744';}
+    return '<div class="convoy-vehicle" onclick="panToVehicle('+v.id+')"><div class="status-dot" style="background:'+dot+'"></div><span class="callsign">'+v.callsign+'</span><span class="type">'+vd.name+'</span><span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">'+vd.psi+'PSI</span><button class="remove-btn" onclick="event.stopPropagation();removeConvoyVehicle('+v.id+')">✕</button></div>';
+  }).join('');
+}
+
+function panToVehicle(id){if(convoyMarkers[id])map.panTo(convoyMarkers[id].getLatLng());}
+
+function updateConvoySummary(){
+  document.getElementById('totalVehicles').textContent=convoyVehicles.length;
+  if(!convoyVehicles.length){document.getElementById('heaviestClass').textContent='--';document.getElementById('limitingFactor').textContent='--';return;}
+  const h=convoyVehicles.reduce((mx,v)=>VEHICLE_DATA[v.type].psi>VEHICLE_DATA[mx.type].psi?v:mx);
+  document.getElementById('heaviestClass').textContent=VEHICLE_DATA[h.type].name;document.getElementById('limitingFactor').textContent=VEHICLE_DATA[h.type].psi+' PSI ground pressure';
+}
+
+function updateConvoyRisk(){
+  if(!terrainDataReady||!flightPathTiles.length||!convoyVehicles.length){document.getElementById('routeRiskCards').style.display='none';document.getElementById('noRouteRisk').style.display='block';return;}
+  document.getElementById('noRouteRisk').style.display='none';document.getElementById('routeRiskCards').style.display='block';
+  let html='';
+  convoyVehicles.forEach(v=>{
+    const vd=VEHICLE_DATA[v.type];
+    const st=getTileStats(vd.psi);
+    const gp=st.total>0?Math.round(st.go/st.total*100):0,rl=gp>70?'low':gp>40?'medium':'high',rt=rl==='low'?'LOW RISK':rl==='medium'?'MOD RISK':'HIGH RISK',bc=rl==='low'?'go':rl==='medium'?'caution':'nogo';
+    html+='<div class="panel-card" style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-family:var(--mono);font-size:11px;color:var(--text-primary)">'+v.callsign+'</span><span class="vehicle-badge '+bc+'">'+rt+'</span></div><div class="data-row"><span class="label">'+vd.name+'</span><span class="value">'+vd.psi+' PSI</span></div><div class="data-row"><span class="label">PASSABLE</span><span class="value '+(gp>70?'green':gp>40?'amber':'red')+'">'+gp+'% ('+st.go+'/'+st.total+')</span></div><div class="data-row"><span class="label">CAUTION</span><span class="value amber">'+st.cau+'</span></div><div class="data-row"><span class="label">NO-GO</span><span class="value red">'+st.ng+'</span></div></div>';
+  });
+  document.getElementById('routeRiskCards').innerHTML=html;
+}
+
+function showToast(msg,color){const t=document.getElementById('toast');t.textContent=msg;t.className='toast visible '+(color||'');clearTimeout(t._to);t._to=setTimeout(()=>t.classList.remove('visible'),3000);}
+
+map.on('click',function(e){if(mapMode==='plan')addWaypoint(e.latlng);else if(mapMode==='measure')handleMeasureClick(e.latlng);});
+
+map.on('mousemove',function(e){
+  const lat=e.latlng.lat.toFixed(4),lng=e.latlng.lng.toFixed(4);
+  const mgrs=getMGRS(e.latlng.lat,e.latlng.lng);
+  const c=latLngToCell(e.latlng.lat,e.latlng.lng);let ex='';
+  if(c){const d=gridCells[c.row][c.col];if(d.surveyed)ex=' | '+d.elevation+'m | '+d.bearingPsi+'PSI';}
+  document.getElementById('coordReadout').textContent=mgrs.full+' | '+lat+'°N '+lng+'°E'+ex;
+});
+
+drawMGRSGrid();updateMGRSInfo();document.getElementById('tbBtnGrid').classList.add('active');setMapMode('plan');updateWaypointList();updateTerrainStats();
+showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
+
+// ─── RESPONSIVE SCALING ───
+// Scale the entire tablet to fit viewport; keep native size on large screens
+(function(){
+  const wrapper = document.getElementById('scaleWrapper');
+  const NATIVE_W = 1749, NATIVE_H = 966;
+  const PAD = 10; // px breathing room
+
+  function scaleFrame(){
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const scaleX = (vw - PAD * 2) / NATIVE_W;
+    const scaleY = (vh - PAD * 2) / NATIVE_H;
+    const s = Math.min(scaleX, scaleY, 1); // never exceed native
+    wrapper.style.transform = 'scale(' + s + ')';
+    // Shrink the wrapper's layout box so body centers it properly
+    wrapper.style.width = (NATIVE_W * s) + 'px';
+    wrapper.style.height = (NATIVE_H * s) + 'px';
+    // Keep the content at native size inside the shrunken box
+    wrapper.style.overflow = 'visible';
+    // Use margin to offset the transform origin
+    const offX = (NATIVE_W * s - NATIVE_W) / 2;
+    const offY = (NATIVE_H * s - NATIVE_H) / 2;
+    wrapper.style.marginLeft = offX + 'px';
+    wrapper.style.marginTop = offY + 'px';
+  }
+
+  scaleFrame();
+  window.addEventListener('resize', scaleFrame);
+})();
+</script>
+</body>
+</html>
