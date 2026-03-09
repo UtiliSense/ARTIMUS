@@ -36,13 +36,18 @@
   --sans: 'Roboto Condensed', sans-serif;
 }
 
-html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); }
+html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); width: 100%; height: 100%; }
 
-.scale-wrapper { display: contents; }
-
-.device-frame {
+.scale-wrapper {
   width: 1749px;
   height: 966px;
+}
+
+.device-frame {
+  position: relative;
+  width: 1749px;
+  height: 966px;
+  filter: drop-shadow(0 25px 60px rgba(0,0,0,0.45)) drop-shadow(0 8px 20px rgba(0,0,0,0.3));
 }
 .device-frame > img { display: block; pointer-events: none; }
 
@@ -5443,17 +5448,19 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 
 // ─── RESPONSIVE SCALING ───
 (function(){
-  const frame = document.querySelector('.device-frame');
+  var el = document.getElementById('scaleWrapper');
   function fit(){
     var vw = window.innerWidth;
     var vh = window.innerHeight;
     var s = Math.min(vw / 1749, vh / 966, 1);
     if(s < 1) s *= 0.93;
-    var sw = Math.round(1749 * s);
-    var sh = Math.round(966 * s);
-    var l = Math.round((vw - sw) / 2);
-    var t = Math.round((vh - sh) / 2);
-    frame.style.cssText = 'position:fixed;top:'+t+'px;left:'+l+'px;width:1749px;height:966px;transform-origin:top left;transform:scale('+s+');filter:drop-shadow(0 25px 60px rgba(0,0,0,0.45)) drop-shadow(0 8px 20px rgba(0,0,0,0.3))';
+    var sw = 1749 * s;
+    var sh = 966 * s;
+    el.style.position = 'fixed';
+    el.style.transformOrigin = 'top left';
+    el.style.transform = 'scale(' + s + ')';
+    el.style.left = Math.round((vw - sw) / 2) + 'px';
+    el.style.top = Math.round((vh - sh) / 2) + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
