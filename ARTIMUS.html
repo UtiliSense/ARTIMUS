@@ -5455,17 +5455,15 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 (function(){
   const frame = document.querySelector('.device-frame');
   function fit(){
-    var rect = frame.parentElement.getBoundingClientRect();
-    var vw = rect.width, vh = rect.height;
-    // Only scale down for small screens, cap at 1 for large
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
     var s = Math.min(vw / 1749, vh / 966, 1);
-    // Add 5% padding so edges aren't flush
-    if(s < 1) s *= 0.95;
-    frame.style.transformOrigin = 'top left';
-    frame.style.transform = 'scale(' + s + ')';
-    frame.style.position = 'absolute';
-    frame.style.left = ((vw - 1749 * s) / 2) + 'px';
-    frame.style.top = ((vh - 966 * s) / 2) + 'px';
+    if(s < 1) s *= 0.93;
+    var sw = Math.round(1749 * s);
+    var sh = Math.round(966 * s);
+    var l = Math.round((vw - sw) / 2);
+    var t = Math.round((vh - sh) / 2);
+    frame.style.cssText = 'position:fixed;top:'+t+'px;left:'+l+'px;width:1749px;height:966px;transform-origin:top left;transform:scale('+s+');filter:drop-shadow(0 25px 60px rgba(0,0,0,0.45)) drop-shadow(0 8px 20px rgba(0,0,0,0.3))';
   }
   fit();
   window.addEventListener('resize', fit);
