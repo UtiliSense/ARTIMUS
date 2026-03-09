@@ -36,19 +36,19 @@
   --sans: 'Roboto Condensed', sans-serif;
 }
 
+html { overflow: hidden; }
 body {
   background: #0a0e14;
   background-image: url('images/bgartimus.png');
   background-size: cover;
   background-position: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100vw; height: 100vh;
   overflow: hidden;
   font-family: var(--sans);
-  position: relative;
   margin: 0; padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* No overlay wash — clean background */
@@ -57,13 +57,12 @@ body::before { display: none; }
 /* Everything on top of the overlay */
 body > * { position: relative; z-index: 1; }
 
-/* Scaling wrapper — shrinks on small screens, stays native on large */
+/* Scaling wrapper */
 .scale-wrapper {
   width: 1749px;
   height: 966px;
+  position: absolute;
   transform-origin: center center;
-  flex-shrink: 0;
-  margin: 0;
 }
 
 .device-frame {
@@ -5481,6 +5480,9 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
     const vw = window.innerWidth, vh = window.innerHeight;
     const s = Math.min(vw / NATIVE_W, vh / NATIVE_H);
     wrapper.style.transform = 'scale(' + s + ')';
+    // Center it absolutely
+    wrapper.style.left = ((vw - NATIVE_W) / 2) + 'px';
+    wrapper.style.top = ((vh - NATIVE_H) / 2) + 'px';
   }
 
   scaleFrame();
