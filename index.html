@@ -36,14 +36,15 @@
   --sans: 'Roboto Condensed', sans-serif;
 }
 
-html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); width: 100vw; height: 100vh; }
+html { margin: 0; padding: 0; overflow: hidden; }
+body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); }
 
 /* Scaling wrapper */
 .scale-wrapper {
   position: fixed;
   top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0; bottom: 0;
+  overflow: hidden;
 }
 
 .device-frame {
@@ -5454,8 +5455,12 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 (function(){
   const frame = document.querySelector('.device-frame');
   function fit(){
-    const vw = window.innerWidth, vh = window.innerHeight;
-    const s = Math.min(vw / 1749, vh / 966);
+    var rect = frame.parentElement.getBoundingClientRect();
+    var vw = rect.width, vh = rect.height;
+    // Only scale down for small screens, cap at 1 for large
+    var s = Math.min(vw / 1749, vh / 966, 1);
+    // Add 5% padding so edges aren't flush
+    if(s < 1) s *= 0.95;
     frame.style.transformOrigin = 'top left';
     frame.style.transform = 'scale(' + s + ')';
     frame.style.position = 'absolute';
