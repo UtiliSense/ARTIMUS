@@ -38,16 +38,12 @@
 
 html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); width: 100vw; height: 100vh; }
 
-/* Scaling wrapper — scales to fit viewport */
+/* Scaling wrapper */
 .scale-wrapper {
+  position: fixed;
+  top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.scale-wrapper .device-frame {
-  transform-origin: center center;
 }
 
 .device-frame {
@@ -5458,8 +5454,13 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 (function(){
   const frame = document.querySelector('.device-frame');
   function fit(){
-    const s = Math.min(window.innerWidth / 1749, window.innerHeight / 966);
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const s = Math.min(vw / 1749, vh / 966);
+    frame.style.transformOrigin = 'top left';
     frame.style.transform = 'scale(' + s + ')';
+    frame.style.position = 'absolute';
+    frame.style.left = ((vw - 1749 * s) / 2) + 'px';
+    frame.style.top = ((vh - 966 * s) / 2) + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
