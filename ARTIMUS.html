@@ -44,7 +44,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  width: 100vw; height: 100vh;
   overflow: hidden;
   font-family: var(--sans);
   position: relative;
@@ -63,6 +63,7 @@ body > * { position: relative; z-index: 1; }
   height: 966px;
   transform-origin: center center;
   flex-shrink: 0;
+  margin: 0;
 }
 
 .device-frame {
@@ -5478,20 +5479,8 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 
   function scaleFrame(){
     const vw = window.innerWidth, vh = window.innerHeight;
-    const scaleX = (vw - PAD * 2) / NATIVE_W;
-    const scaleY = (vh - PAD * 2) / NATIVE_H;
-    const s = Math.min(scaleX, scaleY); // scale to fit any screen size
+    const s = Math.min(vw / NATIVE_W, vh / NATIVE_H);
     wrapper.style.transform = 'scale(' + s + ')';
-    // Shrink the wrapper's layout box so body centers it properly
-    wrapper.style.width = (NATIVE_W * s) + 'px';
-    wrapper.style.height = (NATIVE_H * s) + 'px';
-    // Keep the content at native size inside the shrunken box
-    wrapper.style.overflow = 'visible';
-    // Use margin to offset the transform origin
-    const offX = (NATIVE_W * s - NATIVE_W) / 2;
-    const offY = (NATIVE_H * s - NATIVE_H) / 2;
-    wrapper.style.marginLeft = offX + 'px';
-    wrapper.style.marginTop = offY + 'px';
   }
 
   scaleFrame();
