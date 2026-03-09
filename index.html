@@ -42,8 +42,6 @@ html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-
   width: 1749px;
   height: 966px;
   position: absolute;
-  top: 50%;
-  left: 50%;
   transform-origin: 0 0;
 }
 
@@ -5454,8 +5452,12 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 (function(){
   var el = document.getElementById('scaleWrapper');
   function fit(){
-    var s = Math.min(window.innerWidth / 1749, window.innerHeight / 966, 1);
-    el.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var s = Math.min(vw / 1749, vh / 966, 1);
+    el.style.transform = 'scale(' + s + ')';
+    el.style.left = Math.round((vw - 1749 * s) / 2) + 'px';
+    el.style.top = Math.round((vh - 966 * s) / 2) + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
