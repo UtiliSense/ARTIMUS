@@ -36,11 +36,15 @@
   --sans: 'Roboto Condensed', sans-serif;
 }
 
-html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); width: 100%; height: 100%; }
+html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); }
 
 .scale-wrapper {
   width: 1749px;
   height: 966px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: 0 0;
 }
 
 .device-frame {
@@ -5450,17 +5454,8 @@ showToast('ARTIMUS ONLINE — Plan survey route, then DEPLOY','green');
 (function(){
   var el = document.getElementById('scaleWrapper');
   function fit(){
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    var s = Math.min(vw / 1749, vh / 966, 1);
-    if(s < 1) s *= 0.93;
-    var sw = 1749 * s;
-    var sh = 966 * s;
-    el.style.position = 'fixed';
-    el.style.transformOrigin = 'top left';
-    el.style.transform = 'scale(' + s + ')';
-    el.style.left = Math.round((vw - sw) / 2) + 'px';
-    el.style.top = Math.round((vh - sh) / 2) + 'px';
+    var s = Math.min(window.innerWidth / 1749, window.innerHeight / 966, 1);
+    el.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
   }
   fit();
   window.addEventListener('resize', fit);
