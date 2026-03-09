@@ -36,23 +36,13 @@
   --sans: 'Roboto Condensed', sans-serif;
 }
 
-html { margin: 0; padding: 0; overflow: hidden; }
-body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); }
+html, body { margin: 0; padding: 0; overflow: hidden; background: #0a0e14; font-family: var(--sans); }
 
-/* Scaling wrapper */
-.scale-wrapper {
-  position: fixed;
-  top: 0; left: 0;
-  right: 0; bottom: 0;
-  overflow: hidden;
-}
+.scale-wrapper { display: contents; }
 
 .device-frame {
-  position: relative;
   width: 1749px;
   height: 966px;
-  /* Drop shadow from the tablet */
-  filter: drop-shadow(0 25px 60px rgba(0,0,0,0.45)) drop-shadow(0 8px 20px rgba(0,0,0,0.3));
 }
 .device-frame > img { display: block; pointer-events: none; }
 
